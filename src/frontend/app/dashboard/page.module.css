@@ -1,0 +1,73 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4rem;
+}
+
+.chart {
+  margin: 0px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  border: 1px solid gainsboro;
+  border-radius: 5px;
+  grid-column: 1 / -1;
+}
+
+.chart h2 {
+  font-weight: 600;
+  margin-bottom: 0.7rem;
+}
+
+.chart p {
+  margin: 0;
+  opacity: 0.6;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 80ch;
+  text-wrap: balance;
+}
+
+.card {
+  margin: 0px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  border: 1px solid gainsboro;
+  border-radius: 5px;
+}
+
+.card h2 {
+  font-weight: 600;
+  margin-bottom: 0.7rem;
+}
+
+.card p {
+  margin: 0;
+  opacity: 0.6;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 100ch;
+  text-wrap: balance;
+}
+
+.grid {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-rows: repeat(auto-fill, minmax(300px, 1fr));
+  display: grid;
+  justify-content: center;
+  align-content: end;
+  grid-gap: 1rem;
+  width: var(--max-width);
+}
+
+.col-num  {
+  grid-column: 1 / -1;
+}
+
+.center {
+  font-size: 1.5em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  padding: 4rem;
+}

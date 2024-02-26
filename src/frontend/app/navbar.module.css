@@ -1,0 +1,37 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  background-color: white;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.bar {
+  display: flex;
+  max-width: 100%;
+  width: var(--max-width);
+  grid-gap: 1rem;
+}
+
+.tab {
+  display: inline-flex;
+  padding: 1rem;
+  color: grey;
+}
+
+.tab:hover {
+  color: dimgrey;
+  border-bottom-style: solid;
+  border-width: 2px;
+  border-color: darkgrey;
+}
+
+.tabsel {
+  display: inline-flex;
+  padding: 1rem;
+  color: black;
+  border-bottom-style: solid;
+  border-width: 2px;
+  border-color: slategrey;
+}
