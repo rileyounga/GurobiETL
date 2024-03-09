@@ -19,18 +19,23 @@ CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
 
 @app.route('/api/home', methods=['POST'])
 def home():
-    data = request.get_json()
-    # split the data by json keys
-    problemType = data["problemType"]
-    variables = data["variables"]
-    objective = data["objective"]
-    constraints = data["constraints"]
-    files = data["files"]
-    # try loading one of the files
-    try:
-        data = pd.read_csv(files[0])
-    except:
-        pass
+    # 'data' is an 'ImmutableMultiDict'. See the following documentation:
+    # https://tedboy.github.io/flask/generated/generated/werkzeug.ImmutableMultiDict.html
+    # we can convert it to a Python dictionary using the to_dict() method.
+    data = request.form
+    data_dict = data.to_dict()
+    print("Got input:", data_dict)
+
+    # request.files is an ImmutableMultiDict of files found in the request.
+    # Each file is tied to a key named 'file'.
+    # If we upload three files, there will be three distinct keys named 'file'.
+    # The getlist('file') method constructs a list of all files, each
+    # represented using the FileStorage class:
+    # https://tedboy.github.io/flask/generated/generated/werkzeug.FileStorage.html
+    files = request.files.getlist('file')
+    print("Got files:", [file.filename for file in files])
+    #files[0].save(files[0].filename) # can save files, too
+    
     return jsonify(data)
 
 if __name__ == '__main__':
