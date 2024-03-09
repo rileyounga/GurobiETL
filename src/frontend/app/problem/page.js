@@ -1,89 +1,58 @@
 "use client";
 
 import styles from "./page.module.css";
-import { use, useEffect, useState } from "react";
 
-export default function Page() {
+export default function Content() {
+  async function onSubmit(event) {
+    event.preventDefault();
+ 
+    const formData = new FormData(event.target);
+    const response = await fetch("http://127.0.0.1:8080/api/home", {
+      method: "POST",
+      body: formData
+    });
+    const data = await response.json();
+  }
 
-    //Create a form to submit the problem, use `useEffect` to submit the form
-    const [problemType, setProblemType] = useState("solver");
-    const [variables, setVariables] = useState([]);
-    const [objective, setObjective] = useState("minimize");
-    const [constraints, setConstraints] = useState([]);
-    //TODO: File submission not working
-    const [files, setFiles] = useState([]);
-    const [submitted, setSubmitted] = useState(false);
+  return (
+    <main className={styles.main}>
+      <form className={styles.form} onSubmit={onSubmit} enctype="multipart/form-data">
+        <label className={styles.label}>
+          Problem Type:
+          <select name="problemType">
+            <option value="">Select problem type</option>
+            <option value="solver">Solver</option>
+            <option value="optimizer">Optimizer</option>
+            <option value="etc">...</option>
+          </select>
+        </label>
+        
+        <label className={styles.label} id='file'>
+          File(s):
+          <input type="file" name="file" multiple />
+        </label>
 
-    useEffect(() => {
-        if (submitted) {
-          //redirect to python server
-            fetch("http://127.0.0.1:8080/api/home", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    problemType: problemType,
-                    variables: variables,
-                    objective: objective,
-                    constraints: constraints,
-                    files: files,
-                }),
-            })
-            .then((response) => response.json())
-            .then((data) => {
-                setVariables(data);
-            })
-            .catch((error) => {
-                console.error("Error:", error);
-            });
-        }
-    }, [submitted]);
+        <label className={styles.label}>
+          Variables:
+          <input type="text" name="variables" />
+        </label>
 
-    return (
-      <div className={styles.page}>
-        <form onSubmit={(event) => {event.preventDefault(); setSubmitted(true);}}>
-          <div>
-            <label>
-              Problem Type:
-              <select value={problemType} onChange = {(event) => {setProblemType(event.target.value);}}>
-                <option value="solver">Solver</option>
-                <option value="optimizer">Optimizer</option>
-                <option value="ect">...</option>
-              </select>
-            </label>
-          </div>
-          <div>
-            <label>
-              File(s):
-              <input type="file" onChange = {(event) => {setFiles(event.target.value);}} />
-            </label>
-          </div>
-          <div>
-            <label>
-              Variables:
-              <input type="text" value={variables[0]} onChange={(event) => {setVariables([event.target.value]);}} />
-            </label>
-          </div>
-          <div>
-            <label>
-              Objective:
-              <select value={objective} onChange = {(event) => {setObjective(event.target.value);}}>
-                <option value="minimize">Minimize</option>
-                <option value="maximize">Maximize</option>  
-              </select>
-            </label>
-          </div>
-          <div>
-            <label>
-              Constraints:
-              <input type="text" value={constraints[0]} onChange={(event) => {setConstraints([event.target.value]);}} />
-            </label>
-          </div>
-          <div>
-            <button type="submit">Submit</button>
-          </div>
-        </form>
-      </div>
-    );
-}      
+        <label className={styles.label}>
+          Objective:
+          <select name="objective">
+            <option value="">Select objective type</option>
+            <option value="minimize">Minimize</option>
+            <option value="maximize">Maximize</option>
+          </select>
+        </label>
+
+        <label className={styles.label}>
+          Constraints:
+          <input type="text" name="constraints" />
+        </label>
+
+        <button type="submit">Submit</button>
+      </form>
+    </main>
+  );
+}
