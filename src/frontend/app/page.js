@@ -10,7 +10,7 @@ export default function Content() {
       <div className={styles.grid}>
         <a href="/dashboard" className={styles.card}>
           <h2>Dashboard</h2>
-          <p>View output from the Gurobi API.</p>
+          <p>View output from the Gurobi API</p>
         </a>
 
         <a href="/problem" className={styles.card}>
