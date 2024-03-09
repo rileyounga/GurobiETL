@@ -3,6 +3,17 @@
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: 10rem;
-  min-height: 100vh;
+  padding: 4rem;
+}
+
+.form {
+  max-width: 100%;
+  width: var(--max-width);
+  display: grid;
+}
+
+.label {
+  padding: 1rem;
+  display: inline-grid;
+  margin-bottom: 1.8rem;
 }
