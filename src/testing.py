@@ -2,79 +2,13 @@ import numpy as np
 import pandas as pd
 import gurobipy as gp
 from gurobipy import GRB
-from flask import Flask, request, jsonify
-from flask_cors import CORS
 import re
 
-"""
-Context:
-#fetch path: src/app/problem/page.js
-#cur path: src/api/script.py
-"""
+verbose=True
+# @Everyone: Try running this code locally and tell me what errors you get.
+# my computer knows where my gurobi key is, but I can't easily test where I
+# should potentiall put it. 
 
-app = Flask(__name__)
-CORS(app)
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
-verbose=False
-
-
-@app.route('/api/home', methods=['POST'])
-def home():
-    # 'data' is an 'ImmutableMultiDict'. See the following documentation:
-    # https://tedboy.github.io/flask/generated/generated/werkzeug.ImmutableMultiDict.html
-    # we can convert it to a Python dictionary using the to_dict() method.
-    data = request.form
-    data_dict = data.to_dict()
-    print("Got input:", data_dict)
-
-    # request.files is an ImmutableMultiDict of files found in the request.
-    # Each file is tied to a key named 'file'.
-    # If we upload three files, there will be three distinct keys named 'file'.
-    # The getlist('file') method constructs a list of all files, each
-    # represented using the FileStorage class:
-    # https://tedboy.github.io/flask/generated/generated/werkzeug.FileStorage.html
-    files = request.files.getlist('file')
-    print("Got files:", [file.filename for file in files])
-    #files[0].save(files[0].filename) # can save files, too
-
-    """
-    needed input:
-    files = ["costs.csv", "coverage.csv", "population.csv"]
-    data_dict = {"parameters": {"budget": 20},
-                 "variables": ["build_Tower", "iscovered_Region"], 
-                 "objective": ["sum(iscovered_Region * Population_Region)", "maximize"], 
-                 "constraints": ["sum(build_Tower * Cost_Tower) <= budget"]}
-    
-    @Thomas sorry to change up the form again, but I think I have a better grasp of the
-    desired user input now.
-
-    Working off of this modelling example:
-    https://github.com/Gurobi/modeling-examples/blob/master/cell_tower_coverage/cell_tower.ipynb
-    """
-    # Parse the data
-    df_dict = parse_data(files)
-    # @Zhangpeng This dictionary of dataframes can now be fed into the visualization module
-    # Since I am first trying out a coverage problem, an arc node graph might be good.
-    # though, I am still figuring out what sorts of visualizations would be good in general.
-
-    # prep the dict for json response simply return the list of dict items
-    response = {}
-    for key, value in df_dict.items():
-        response[key] = value.to_dict(orient='records')
-
-    try:
-        problemType = data_dict["problemType"]
-    except:
-        if verbose:
-            print("No problemType found in data_dict")
-        raise ValueError("No problemType found in data_dict")
-    
-    if problemType == "solver":
-        coverage_model(df_dict, data_dict)
-
-    return jsonify(response)
-
-#TODO move the parse functions to a utils file
 def parse_data(files):
     """
     Load all of the files. Parse the data by merging the dataframes on any columns in common.
@@ -134,18 +68,13 @@ def parse_data(files):
         value.columns = value.columns.str.strip()
 
     if verbose:
-        print(df_dict)
+        for key, value in df_dict.items():
+            print(key, value, "\n")
         print('-'*10, "Data Parsed", '-'*10, "\n")
 
     return df_dict
 
 def coverage_model(df_dict, data_dict):
-    """
-    Create a gurobi model from the dataframes and data_dict
-    :param df_dict: dictionary of dataframes
-    :param data_dict: dictionary of data
-    :return: None
-    """
     # convert the dataframes to dictionaries
     for key, value in df_dict.items():
         columns = value.columns.tolist()
@@ -237,7 +166,7 @@ def coverage_model(df_dict, data_dict):
     # Optimize
     m.optimize()
 
-    # This solution print is also hard-coded to test functionality.
+    # TODO This solution print is also hard-coded to test functionality.
     # Shouldn't be too hard to generalize
 
     # Print the solution
@@ -291,5 +220,20 @@ def parse(str):
     
     return str
 
-if __name__ == '__main__':
-    app.run(debug=True, port=8080)
+
+def main():
+    files = ["costs.csv", "coverage.csv", "population.csv"]
+    data_dict = {"parameters": {"budget": 20},
+                 "variables": ["build_Tower", "iscovered_Region"], 
+                 "objective": ["sum(iscovered_Region * Population_Region)", "maximize"], 
+                 "constraints": ["sum(build_Tower * Cost_Tower) <= budget", 
+                                 #"sum(build_Tower >= iscovered_Region)"]}
+                 ]}
+    
+    
+    df_dict = parse_data(files)
+    coverage_model(df_dict, data_dict)
+
+
+if __name__ == "__main__":
+    main()
