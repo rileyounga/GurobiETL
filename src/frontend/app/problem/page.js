@@ -23,7 +23,7 @@ export default function Content() {
             <option value="">Select problem type</option>
             <option value="solver">Solver</option>
             <option value="optimizer">Optimizer</option>
-            <option value="etc">...</option>
+            <option value="coverage">Coverage</option>
           </select>
         </label>
         

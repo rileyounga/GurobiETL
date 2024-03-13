@@ -5,6 +5,9 @@ from gurobipy import GRB
 import re
 
 verbose=True
+# @Everyone: Try running this code locally and tell me what errors you get.
+# my computer knows where my gurobi key is, but I can't easily test where I
+# should potentiall put it. 
 
 def parse_data(files):
     """
