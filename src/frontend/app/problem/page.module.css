@@ -17,3 +17,23 @@
   display: inline-grid;
   margin-bottom: 1.8rem;
 }
+
+.button {
+  border: 1px solid gainsboro;
+  border-radius: 5px;
+}
+
+.select {
+  border: 1px solid gainsboro;
+  border-radius: 5px;
+}
+
+.input {
+  border: 1px solid gainsboro;
+  border-radius: 5px;
+}
+
+.fileupload::file-selector-button {
+  border: 1px solid gainsboro;
+  border-radius: 5px;
+}

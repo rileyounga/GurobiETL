@@ -19,7 +19,7 @@ export default function Content() {
       <form className={styles.form} onSubmit={onSubmit} enctype="multipart/form-data">
         <label className={styles.label}>
           Problem Type:
-          <select name="problemType">
+          <select name="problemType" className={styles.select}>
             <option value="">Select problem type</option>
             <option value="solver">Solver</option>
             <option value="optimizer">Optimizer</option>
@@ -29,17 +29,17 @@ export default function Content() {
         
         <label className={styles.label} id='file'>
           File(s):
-          <input type="file" name="file" multiple />
+          <input type="file" name="file" multiple className={styles.fileupload} />
         </label>
 
         <label className={styles.label}>
           Variables:
-          <input type="text" name="variables" />
+          <input type="text" name="variables" className={styles.input} />
         </label>
 
         <label className={styles.label}>
           Objective:
-          <select name="objective">
+          <select name="objective" className={styles.select}>
             <option value="">Select objective type</option>
             <option value="minimize">Minimize</option>
             <option value="maximize">Maximize</option>
@@ -48,10 +48,10 @@ export default function Content() {
 
         <label className={styles.label}>
           Constraints:
-          <input type="text" name="constraints" />
+          <input type="text" name="constraints" className={styles.input} />
         </label>
 
-        <button type="submit">Submit</button>
+        <button type="submit" className={styles.button}>Submit</button>
       </form>
     </main>
   );
