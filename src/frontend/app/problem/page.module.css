@@ -3,21 +3,82 @@
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: 4rem;
+  padding: 3rem;
 }
 
 .form {
+  padding: 1rem;
+  width: var(--max-width);
+}
+
+.constraint {
+  display: inline;
+}
+
+.variable {
+  display: inline;
+}
+
+.form button {
+  border: 1px solid gainsboro;
+  border-radius: 5px;
+}
+
+.problems {
+  display: inline;
+  max-width: 100%;
+  width: var(--max-width);
+  grid-gap: 1rem;
+  cursor: pointer;
+  /*margin-bottom: 1.4rem;*/
+}
+
+.prob {
+  display: inline-flex;
+  padding: 1rem;
+  color: grey;
+}
+
+.prob:hover {
+  color: dimgrey;
+  border-bottom-style: solid;
+  border-width: 2px;
+  border-color: darkgrey;
+}
+
+.probsel {
+  display: inline-flex;
+  padding: 1rem;
+  color: black;
+  border-bottom-style: solid;
+  border-width: 2px;
+  border-color: black;
+}
+
+/*
+.oldform {
+  padding: 1rem;
   max-width: 100%;
   width: var(--max-width);
   display: grid;
 }
+*/
 
+
+/*
 .label {
   padding: 1rem;
   display: inline-grid;
-  margin-bottom: 1.8rem;
+  margin-bottom: 1rem;
 }
 
+.label h1 {
+  font-size: 1em;
+  font-weight: regular;
+}
+*/
+
+/*
 .button {
   border: 1px solid gainsboro;
   border-radius: 5px;
@@ -37,3 +98,4 @@
   border: 1px solid gainsboro;
   border-radius: 5px;
 }
+*/
