@@ -7,19 +7,43 @@
 }
 
 .form {
-  padding: 1rem;
   width: var(--max-width);
 }
 
-.constraint {
-  display: inline;
+.form > div {
+  margin: 1rem;
+  /*text-align: center;*/
 }
 
-.variable {
+.form h1 {
+  font-weight: 600;
+  font-size: 1em;
+}
+
+.dynamiclist {
   display: inline;
+}
+.dynamiclist button {
+  border: 1px red solid;
+}
+
+.form input[type=text] {
+  border: 1px solid gainsboro;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+.form input[type=file]::file-selector-button {
+  border: 1px solid gainsboro;
+  border-radius: 5px;
 }
 
 .form button {
+  border: 1px solid gainsboro;
+  border-radius: 5px;
+}
+
+.form select {
   border: 1px solid gainsboro;
   border-radius: 5px;
 }
@@ -30,7 +54,6 @@
   width: var(--max-width);
   grid-gap: 1rem;
   cursor: pointer;
-  /*margin-bottom: 1.4rem;*/
 }
 
 .prob {
@@ -54,48 +77,3 @@
   border-width: 2px;
   border-color: black;
 }
-
-/*
-.oldform {
-  padding: 1rem;
-  max-width: 100%;
-  width: var(--max-width);
-  display: grid;
-}
-*/
-
-
-/*
-.label {
-  padding: 1rem;
-  display: inline-grid;
-  margin-bottom: 1rem;
-}
-
-.label h1 {
-  font-size: 1em;
-  font-weight: regular;
-}
-*/
-
-/*
-.button {
-  border: 1px solid gainsboro;
-  border-radius: 5px;
-}
-
-.select {
-  border: 1px solid gainsboro;
-  border-radius: 5px;
-}
-
-.input {
-  border: 1px solid gainsboro;
-  border-radius: 5px;
-}
-
-.fileupload::file-selector-button {
-  border: 1px solid gainsboro;
-  border-radius: 5px;
-}
-*/
