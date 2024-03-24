@@ -5,6 +5,7 @@ from gurobipy import GRB
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import re
+import json
 
 """
 Context:
@@ -22,9 +23,8 @@ verbose=False
 def home():
     # 'data' is an 'ImmutableMultiDict'. See the following documentation:
     # https://tedboy.github.io/flask/generated/generated/werkzeug.ImmutableMultiDict.html
-    # we can convert it to a Python dictionary using the to_dict() method.
     data = request.form
-    data_dict = data.to_dict()
+    data_dict = {key: json.loads(value) for (key, value) in zip(data.keys(), data.values())}
     print("Got input:", data_dict)
 
     # request.files is an ImmutableMultiDict of files found in the request.
