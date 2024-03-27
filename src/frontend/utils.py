@@ -1,11 +1,5 @@
-import numpy as np
 import pandas as pd
-import gurobipy as gp
-from gurobipy import GRB
 import re
-#import yfinance as yf
-
-verbose=True
 
 def parse_data(files):
     """
@@ -13,10 +7,6 @@ def parse_data(files):
     :param files: list of file names
     :return: dictionary of dataframes
     """
-    if len(files) == 0:
-        if verbose:
-            print("No files to parse")
-        raise ValueError("No files to parse")
     
     # Read all the files
     file_list = []
@@ -65,12 +55,8 @@ def parse_data(files):
     for value in df_dict.values():
         value.columns = value.columns.str.strip()
 
-    if verbose:
-        for key, value in df_dict.items():
-            print(key, value, "\n")
-        print('-'*10, "Data Parsed", '-'*10, "\n")
-
     return df_dict
+
 def parse(str):
     """
     Parse the string str to be used in the gurobi model
@@ -97,36 +83,3 @@ def parse(str):
         str = str.replace(sum_sets[i], f"{sum_sets[i]} for {sets[i][0]} in {sets[i]}")
     
     return str
-
-
-def portfolio_model(files, data_dict):
-    stocks = pd.read_csv(files[0])
-    print(stocks)
-
-    stocks = ['BRK-A', 'AAPL', 'MSFT', 'GOOG', 'BAC', 'INTC', 'WFC',
-              'C', 'VZ', 'META', 'PFE', 'JNJ', 'WMT', 'XOM',
-              'FNMA', 'T', 'UNH', 'CMCSA', 'V']
-    print(stocks)
-    
-    #data = yf.download(stocks, period=data_dict['period'])
-    #print(data)
-
-    model = gp.Model("portfolio")
-
-    # Select stock?
-    select = model.addVars(stocks, vtype=GRB.BINARY, name="Select")
-
-    # Objective is to minimize risk (squared).
-    risk = select @ sigma @ select
-    model.setObjective(risk, GRB.MINIMIZE)
-
-    # Fix budget with a constraint
-    model.addConstr(select.sum() == 1, "Budget")
-
-def main():
-    files = ["stock_options.csv"]
-    data_dict = {'period': '2y'}
-    portfolio_model(files, data_dict)
-
-if __name__ == "__main__":
-    main()
