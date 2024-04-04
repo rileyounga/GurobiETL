@@ -3,6 +3,54 @@
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: 10rem;
-  min-height: 100vh;
+  padding: 3rem;
+}
+
+.header {
+  width: var(--max-width);
+  margin: 1.5rem;
+}
+
+.header h1 {
+  font-weight: 600;
+  font-size: 1.8rem;
+}
+
+.section {
+  width: var(--max-width);
+  margin: 1.5rem;
+  margin-top: 2.5rem;
+}
+
+.section h1 {
+  font-weight: 600;
+  font-size: 1.4rem;
+  border-bottom-style: solid;
+  border-color: lightgrey;
+  border-width: 1px;
+  padding-bottom: .5em;
+}
+
+.question {
+  width: var(--max-width);
+  margin: 1.3rem;
+  padding-left: 1rem;
+}
+
+.question h1 {
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin-bottom: .5em;
+}
+
+.question p {
+  font-size: 1rem;
+}
+
+.question ul {
+  list-style-position: inside
+}
+
+.question a {
+  color: blue;
 }
