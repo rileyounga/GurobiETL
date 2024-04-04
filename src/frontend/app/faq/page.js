@@ -8,7 +8,7 @@ export default function Content() {
           <h1>FAQ</h1>
         </div>
 
-        <div id="about-wrapper" className={styles.section}>
+        <div id="about-project" className={styles.section}>
           <h1>About the project</h1>
         </div>
 
