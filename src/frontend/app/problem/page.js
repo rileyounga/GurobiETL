@@ -7,16 +7,13 @@ export default function Content() {
   async function send() {
     const formData = new FormData();
     
-    let params = {}
-    parameters.filter((p) => (p.key != "" && p.value != "")).forEach((p) => (params[p.key] = p.value));
-    formData.append("parameters", JSON.stringify(params))
     formData.append("problemType", JSON.stringify(problemType));
     formData.append("objective", JSON.stringify([objectiveFormula, objectiveType]));
     formData.append("variables", JSON.stringify(variables.filter((v) => (v.value != "")).map((v) => (v.value))));
     formData.append("constraints", JSON.stringify(constraints.filter((c) => (c.value != "")).map((c) => (c.value))));
     
     Array.from(files).forEach((file) => {formData.append("file", file)});
-    
+
     const response = await fetch("http://127.0.0.1:8080/api/home", {
       method: "POST",
       body: formData
@@ -38,7 +35,6 @@ export default function Content() {
   const [objectiveType, setObjectiveType] = useState("");
   const [objectiveFormula, setObjectiveInput] = useState("");
   
-  const [parameters, setParameters] = useState([{key: "", value: ""}]);
   const [variables, setVariables] = useState([{value: ""}]);
   const [constraints, setConstraints] = useState([{value: ""}]);
   const [files, setFiles] = useState([]);
@@ -63,18 +59,6 @@ export default function Content() {
           <input type="file" name="file" multiple onChange={(e) => {setFiles(e.target.files)}}/>
         </div>
   
-        <div>
-          <h1>Parameters</h1>
-          {parameters.map((param, index) => (
-            <div>
-              <Parameter parameter={param} />
-              <button onClick={() => {setParameters(parameters.toSpliced(index, 1))}}>X</button>
-            </div>
-          ))}
-          <div>
-          <button onClick={() => {setParameters([...parameters, {key: "", value: ""}])}}>add parameter</button>
-          </div>
-        </div>
         <div>
           <h1>Variables</h1>
           {variables.map((variable, index) => (
@@ -113,16 +97,6 @@ export default function Content() {
         </div>
       </div>
     </main>
-  );
-}
-
-function Parameter({ parameter }) {
-  const [value, setValue] = useState();
-  return (
-      <div className={styles.dynamiclist}>
-        <input placeholder="Key" type="text" name="key" value={parameter.key} onChange={(e) => {setValue(e.target.value); parameter.key = e.target.value}} />
-        <input placeholder="Value" type="text" name="value" value={parameter.value} onChange={(e) => {setValue(e.target.value); parameter.value = e.target.value}} />
-      </div>
   );
 }
 
