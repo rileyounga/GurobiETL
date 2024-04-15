@@ -11,10 +11,9 @@ export default function Content() {
     parameters.filter((p) => (p.key != "" && p.value != "")).forEach((p) => (params[p.key] = p.value));
     formData.append("parameters", JSON.stringify(params))
     formData.append("problemType", JSON.stringify(problemType));
-    formData.append("objective", JSON.stringify(objective));
+    formData.append("objective", JSON.stringify([objectiveFormula, objectiveType]));
     formData.append("variables", JSON.stringify(variables.filter((v) => (v.value != "")).map((v) => (v.value))));
     formData.append("constraints", JSON.stringify(constraints.filter((c) => (c.value != "")).map((c) => (c.value))));
-    //formData.append("parameters", JSON.stringify(parameters.map((parameter) => ({[parameter.key]: parameter.value}))));
     
     Array.from(files).forEach((file) => {formData.append("file", file)});
     
@@ -36,7 +35,8 @@ export default function Content() {
     { value: "minimize", display: "Minimize" },
     { value: "maximize", display: "Maximize" }
   ];
-  const [objective, setObjective] = useState("")
+  const [objectiveType, setObjectiveType] = useState("");
+  const [objectiveFormula, setObjectiveInput] = useState("");
   
   const [parameters, setParameters] = useState([{key: "", value: ""}]);
   const [variables, setVariables] = useState([{value: ""}]);
@@ -90,10 +90,11 @@ export default function Content() {
 
         <div>
           <h1>Objective</h1>
-          <select name="objective" className={styles.select} onChange={(e) => (setObjective(e.target.value))}>
+          <select name="objectiveType" className={styles.select} onChange={(e) => (setObjectiveType(e.target.value))}>
             <option value="">Select type</option>
             {objectives.map((o) => (<option value={o.value}>{o.display}</option>))}
           </select>
+          <input type="text" name="objectiveFormula" onChange={(e) => {setObjectiveInput(e.target.value)}} />
         </div>
 
         <div>
