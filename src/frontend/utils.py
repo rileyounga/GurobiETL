@@ -1,5 +1,5 @@
-import pandas as pd
 import re
+import pandas as pd
 
 def parse_data(files):
     """
@@ -57,6 +57,135 @@ def parse_data(files):
 
     return df_dict
 
+def parse(expr, sets):
+    """
+    Parse the expression to be used in the gurobi model
+    :param expr: string
+    :param sets: dictionary
+    :return: string
+    """
+    ret = ""
+    # split on ==, <=, >=, <, >, != if it exists
+    operator = re.findall(r"=|<=|>=|<|>|!=", expr)
+    
+    # if there is an operator, we need to split the expression
+    if len(operator) > 0:
+        # We need to know which sets are in the expression so we extract all subscripts we want to iterate over
+        indexes = re.findall(r"(\w_\w+|\w_\{\w+,\w+\})", expr)
+        index = set()
+        for idx in indexes:
+            if "{" not in idx:
+                index.add(idx.split("_")[1])
+            else:
+                for i in idx.split("_")[1].replace("{", "").replace("}", "").split(","):
+                    index.add(i)
+
+        expr = expr.split(operator[0])
+        lhs = expr[0].strip()
+        rhs = expr[1].strip()
+
+        ret += "("
+        # find the sums
+        sums = re.findall(r"/sum_(\w)\^(\w)", lhs)
+        if len(sums) > 0:
+            ret += "gp.quicksum("
+        for sum in sums:
+            # if we have a sum over some of our subscripts, we remove them from the set
+            # so we don't double count them in our final iteration expression
+            for idx in index.copy():
+                if sum[0] == idx:
+                    index.remove(idx)
+
+        # now that we extracted the info from the sums, we can remove them from the lhs
+        lhs = re.sub(r"/sum_(\w)\^(\w)", "", lhs)
+        # also remove parentheses
+        lhs = lhs.replace("(", "").replace(")", "")
+        rhs = rhs.replace("(", "").replace(")", "")
+        # remove whitespace
+        lhs = lhs.strip()
+        rhs = rhs.strip()
+
+        # find the subscripts to replace with array notation
+        subscripts = re.findall(r"(\w_\w+|\w_\{\w+,\w+\})", lhs)
+        for subscript in subscripts:
+            if "{" not in subscript:
+                lhs = lhs.replace(subscript, f"{subscript.split('_')[0]}[{subscript.split('_')[1]}]")
+            else:
+                lhs = lhs.replace(subscript, f"{subscript.split('_')[0]}[{subscript.split('_')[1].replace('{', '').replace('}', '')}]")
+
+        ret += lhs
+
+        # Add the sums for the lhs
+        for sum in sums:
+            ret += f" for {sum[0]} in {sum[1]}"
+        if len(sums) > 0:
+            ret += ")"
+
+        if operator[0] == "=":
+            operator[0] = "=="
+        ret += f" {operator[0]} "
+
+        subscripts = re.findall(r"(\w_\w+|\w_\{\w+,\w+\})", rhs)
+        for subscript in subscripts:
+            if "{" not in subscript:
+                rhs = rhs.replace(subscript, f"{subscript.split('_')[0]}[{subscript.split('_')[1]}]")
+            else:
+                rhs = rhs.replace(subscript, f"{subscript.split('_')[0]}[{subscript.split('_')[1].replace('{', '').replace('}', '')}]")
+
+        ret += rhs
+
+        ret += ")"
+
+        # For any remaining subscripts, we iterate over the sets
+        for key, value in sets.items():
+            if value in index:
+                ret += f" for {value} in {key}"
+
+    else:
+        indexes = re.findall(r"(\w_\w+|\w_\{\w+,\w+\})", expr)
+        index = set()
+        for idx in indexes:
+            if "{" not in idx:
+                index.add(idx.split("_")[1])
+            else:
+                for i in idx.split("_")[1].replace("{", "").replace("}", "").split(","):
+                    index.add(i)
+
+        sums = re.findall(r"/sum_(\w)\^(\w)", expr)
+        if len(sums) > 0:
+            ret += "gp.quicksum("
+        for sum in sums:
+            for idx in index.copy():
+                if sum[0] == idx:
+                    index.remove(idx)
+
+        expr = re.sub(r"/sum_(\w)\^(\w)", "", expr)
+        expr = expr.replace("(", "").replace(")", "")
+        expr = expr.strip()
+
+        subscripts = re.findall(r"(\w_\w+|\w_\{\w+,\w+\})", expr)
+        for subscript in subscripts:
+            if "{" not in subscript:
+                expr = expr.replace(subscript, f"{subscript.split('_')[0]}[{subscript.split('_')[1]}]")
+            else:
+                expr = expr.replace(subscript, f"{subscript.split('_')[0]}[{subscript.split('_')[1].replace('{', '').replace('}', '')}]")
+
+        ret += expr
+
+        for sum in sums:
+            ret += f" for {sum[0]} in {sum[1]}"
+
+        for key, value in sets.items():
+            if value in index:
+                ret += f" for {value} in {key}" 
+
+        if len(sums) > 0:
+            ret += ")"
+        elif len(index) > 0:
+            ret += ")"
+
+    return ret
+
 def parse(str):
     """
     Parse the string str to be used in the gurobi model
@@ -65,7 +194,7 @@ def parse(str):
     """
     # step 1: replace sum with gp.quicksum
     str = str.replace("sum", "gp.quicksum")
-    
+
     # step 2: replace subscripted set variables with array notation
     # step 2.5: get the set variables
     set_vars = re.findall(r"(\w+_\w+)", str)
@@ -81,5 +210,5 @@ def parse(str):
     sum_sets = re.findall(r"gp.quicksum\((.*)\)", str)
     for i in range(len(sum_sets)):
         str = str.replace(sum_sets[i], f"{sum_sets[i]} for {sets[i][0]} in {sets[i]}")
-    
+
     return str
