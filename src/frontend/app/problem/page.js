@@ -7,7 +7,7 @@ export default function Content() {
   async function send() {
     const formData = new FormData();
     
-    formData.append("problemType", JSON.stringify(problemType));
+    formData.append("problem", JSON.stringify(problem));
     formData.append("objective", JSON.stringify({"formula": formula, "sense": sense}));
     formData.append("variables", JSON.stringify(variables.filter((v) => (v.value != "")).map((v) => (v.value))));
     formData.append("constraints", JSON.stringify(constraints.filter((c) => (c.value != "")).map((c) => (c.value))));
@@ -21,17 +21,17 @@ export default function Content() {
     const data = await response.json();
   }
 
-  const problemTypes = [
-    { value: "portfolio_optimization", display: "Portfolio Optimization" },
-    { value: "mathematical_optimization", display: "Mathematical Optimization" },
-    { value: "location_analysis", display: "Location Analysis" },
-  ];
-  const [problemType, setProblemType] = useState("portfolio_optimization");
+  const problems = {
+    location_analysis: {display: "Location Analysis", fields: ["files", "variables", "objective", "constraints"] },
+    mathematical_optimization: {display: "Mathematical Optimization", fields: ["files", "variables", "objective", "constraints"]},
+    portfolio_optimization: {display: "Portfolio Optimization", fields: ["files"]},
+  };
+  const [problem, setProblem] = useState("location_analysis");
 
-  const senses = [
-    { value: "minimize", display: "Minimize" },
-    { value: "maximize", display: "Maximize" }
-  ];
+  const senses = {
+    minimize: "Minimize",
+    maximize: "Maximize"
+  };
   const [sense, setSense] = useState("");
   const [formula, setFormula] = useState("");
   
@@ -46,19 +46,22 @@ export default function Content() {
         <div>
           <h1>Problem type</h1>
           <div className={styles.problems}>
-            {problemTypes.map((item) => (
-              <div className={problemType === item.value ? styles.probsel : styles.prob} onClick={() => {setProblemType(item.value)}}>
-                <p>{item.display}</p>
+            {Object.keys(problems).map((type) => (
+              <div className={problem === type ? styles.probsel : styles.prob} onClick={() => {setProblem(type)}}>
+                <p>{problems[type].display}</p>
               </div>
             ))}
           </div>
         </div>
 
+        { problems[problem].fields.includes("files") &&
         <div>
           <h1>File(s)</h1>
           <input type="file" name="file" multiple onChange={(e) => {setFiles(e.target.files)}}/>
         </div>
-  
+        }
+
+        { problems[problem].fields.includes("variables") &&
         <div>
           <h1>Variables</h1>
           {variables.map((variable, index) => (
@@ -71,16 +74,20 @@ export default function Content() {
           <button onClick={() => {setVariables([...variables, {value: ""}])}}>add variable</button>
           </div>
         </div>
+        }
 
+        { problems[problem].fields.includes("objective") &&
         <div>
           <h1>Objective</h1>
           <select name="sense" className={styles.select} onChange={(e) => (setSense(e.target.value))}>
             <option value="">Select type</option>
-            {senses.map((o) => (<option value={o.value}>{o.display}</option>))}
+            {Object.keys(senses).map((s) => (<option value={s}>{senses[s]}</option>))}
           </select>
           <input type="text" name="formula" onChange={(e) => {setFormula(e.target.value)}} />
         </div>
+        }
 
+        { problems[problem].fields.includes("constraints") &&
         <div>
           <h1>Constraints</h1>
           {constraints.map((con, index) => (
@@ -91,6 +98,7 @@ export default function Content() {
           ))}
           <button onClick={() => {setConstraints([...constraints, {value: ""}])}}>add constraint</button>
         </div>
+        }
         
         <div>
           <button onClick={send}>Run problem</button>
