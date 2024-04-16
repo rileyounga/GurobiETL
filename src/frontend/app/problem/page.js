@@ -8,7 +8,7 @@ export default function Content() {
     const formData = new FormData();
     
     formData.append("problemType", JSON.stringify(problemType));
-    formData.append("objective", JSON.stringify([objectiveFormula, objectiveType]));
+    formData.append("objective", JSON.stringify({"formula": formula, "sense": sense}));
     formData.append("variables", JSON.stringify(variables.filter((v) => (v.value != "")).map((v) => (v.value))));
     formData.append("constraints", JSON.stringify(constraints.filter((c) => (c.value != "")).map((c) => (c.value))));
     
@@ -28,12 +28,12 @@ export default function Content() {
   ];
   const [problemType, setProblemType] = useState("portfolio_optimization");
 
-  const objectives = [
+  const senses = [
     { value: "minimize", display: "Minimize" },
     { value: "maximize", display: "Maximize" }
   ];
-  const [objectiveType, setObjectiveType] = useState("");
-  const [objectiveFormula, setObjectiveInput] = useState("");
+  const [sense, setSense] = useState("");
+  const [formula, setFormula] = useState("");
   
   const [variables, setVariables] = useState([{value: ""}]);
   const [constraints, setConstraints] = useState([{value: ""}]);
@@ -74,11 +74,11 @@ export default function Content() {
 
         <div>
           <h1>Objective</h1>
-          <select name="objectiveType" className={styles.select} onChange={(e) => (setObjectiveType(e.target.value))}>
+          <select name="sense" className={styles.select} onChange={(e) => (setSense(e.target.value))}>
             <option value="">Select type</option>
-            {objectives.map((o) => (<option value={o.value}>{o.display}</option>))}
+            {senses.map((o) => (<option value={o.value}>{o.display}</option>))}
           </select>
-          <input type="text" name="objectiveFormula" onChange={(e) => {setObjectiveInput(e.target.value)}} />
+          <input type="text" name="formula" onChange={(e) => {setFormula(e.target.value)}} />
         </div>
 
         <div>
