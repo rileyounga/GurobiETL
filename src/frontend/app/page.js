@@ -4,7 +4,7 @@ export default function Content() {
   return (
     <main className={styles.main}>
       <div className={styles.center}>
-        <h1>Gurobi Wrapper</h1>
+        <h1>GurobiETl</h1>
       </div>
       
       <div className={styles.grid}>
