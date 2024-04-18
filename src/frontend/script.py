@@ -59,7 +59,7 @@ def home():
     # prep the dict for json response simply return the list of dict items
     response = {}
 
-    problemType = data_dict["problemType"]
+    problemType = data_dict["problem"]
     
     if problemType == "mathematical_optimization":
         result = general_model(data_dict, files, hardcode="PowerPlant")
