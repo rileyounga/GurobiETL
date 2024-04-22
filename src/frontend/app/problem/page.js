@@ -2,8 +2,10 @@
 
 import styles from "./page.module.css";
 import { useState } from "react";
+import { useRouter } from 'next/navigation';
 
 export default function Content() {
+  const router = useRouter()
   async function send() {
     const formData = new FormData();
     
@@ -19,6 +21,8 @@ export default function Content() {
       body: formData
     });
     const data = await response.json();
+    localStorage.setItem("solution", JSON.stringify(data));
+    router.push('/dashboard');
   }
 
   const problems = {
@@ -41,7 +45,6 @@ export default function Content() {
 
   return (
     <main className={styles.main}>
-
       <div className={styles.form}>
         <div>
           <h1>Problem type</h1>

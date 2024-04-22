@@ -6,7 +6,7 @@ import Navbar from './navbar.js';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Gurobi Wrapper",
+  title: "GurobiETL",
 };
 
 export default function RootLayout({ children }) {
