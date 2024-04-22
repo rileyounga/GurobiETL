@@ -12,7 +12,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
-from utils import parse, parse_data
+from utils import parse, typeparse
 
 """
 Context:
@@ -31,21 +31,8 @@ def home():
     # https://tedboy.github.io/flask/generated/generated/werkzeug.ImmutableMultiDict.html
     data = request.form
     data_dict = {key: json.loads(value) for (key, value) in zip(data.keys(), data.values())}
-    print("Got input:", data_dict)
-    #TODO: This is the new form data I need:
-    # I cut parameters, they can be set with the variables, and I didn't realize till now, but I still need an input form
-    # to go with the objective
-    # Also the portfolio opimization model just needs the files, so you can get rid of the form data for that one
-    """{
-        "objective": ["/sum_i^{Plant} /sum_h^{H} (f_i * z_{i,h} + o_i * u_{i,h} + s_i * v_{i,h} + t_i * w_{i,h})", "minimize"],
-        "constraints": ["/sum_i^{Plant} z_{i,h} = d_h /forall_h^{H}",
-                        "z_{i,h} <= Capacity_i * u_{i,h} /forall_i^{Plant} /forall_h^{H}",
-                        #"z_{i,h} >= m_i * c_i * u_{i,h}",
-                        #"v_{i,h} <= u_{i,h}",
-                        #"w_{i,h} <= 1 - u_{i,h}"
-                        ],
-        "variables": ["z^{Plant,H}", "u^{Plant,H}", "v^{Plant,H}", "w^{Plant,H}"]
-    }"""
+    if verbose:
+        print("Got input:", data_dict)
 
     # request.files is an ImmutableMultiDict of files found in the request.
     # Each file is tied to a key named 'file'.
@@ -54,24 +41,34 @@ def home():
     # represented using the FileStorage class:
     # https://tedboy.github.io/flask/generated/generated/werkzeug.FileStorage.html
     files = request.files.getlist('file')
-    print("Got files:", [file.filename for file in files])
+    if verbose:
+        print("Got files:", [file.filename for file in files])
 
     # prep the dict for json response simply return the list of dict items
     response = {}
 
-    problemType = data_dict["problemType"]
+    try:
+        problemType = data_dict["problem"]
+    except:
+        return jsonify({"error": "Please select a problem type"})
     
     if problemType == "mathematical_optimization":
         result = general_model(data_dict, files, hardcode="PowerPlant")
         response["result"] = result
+        if verbose:
+            print(result)
 
-    elif problemType == "coverage_model":
-        result = coverage_model(data_dict, files, hardcode="Coverage")
+    elif problemType == "location_analysis":
+        result = general_model(data_dict, files)
         response["result"] = result
+        if verbose:
+            print(result)
 
     elif problemType == "portfolio_optimization":
         result, fig = portfolio_model(files)
         response["result"] = result
+        if verbose:
+            print(result)
         response["fig"] = base64.b64encode(fig).decode()
         """
         To be used by the frontend like so:
@@ -83,128 +80,7 @@ def home():
                 document.body.appendChild(img);
             });
         """
-
     return jsonify(response)
-
-def coverage_model(df_dict, data_dict):
-    #TODO: I working to convert this function to the new implementation
-    """
-    Create a gurobi model from the dataframes and data_dict
-    :param df_dict: dictionary of dataframes
-    :param data_dict: dictionary of data
-    :return: None
-    """
-    # convert the dataframes to dictionaries
-    for key, value in df_dict.items():
-        columns = value.columns.tolist()
-        first_col = ""
-        for i in range(len(columns)):
-            cur_col = value.iloc[:, i].to_list()
-
-            # try to convert the set strings to actual sets
-            try:
-                # TODO definite issue: mapping to int is not always correct
-                cur_col = [set(map(int, c.strip('{}').split(','))) for c in cur_col]
-            except:
-                pass
-        
-            # make singular dicts first then combine them
-            if i == 0:
-                globals()[columns[i]] = value.iloc[:, i].to_list()
-                first_col = cur_col
-            else:
-                new_dict = {first_col[i] : cur_col[i] for i in range(len(cur_col))}
-                globals()[columns[i]] = new_dict
-                
-    # Create a new model
-    m = gp.Model("coverage_model")        
-    
-    try:
-        for key, value in data_dict["parameters"].items():
-            globals()[key] = value
-    except:
-        if verbose:
-            print("No parameters found in data_dict")
-        raise ValueError("No parameters found in data_dict")
-
-    # Hard-coded for now
-    budget = 20
-
-    # Create variables
-    try:
-        variables = data_dict["variables"]
-        for v in variables:
-            var, Index = v.split("_")
-            length = len(globals()[Index])
-            globals()[var] = m.addVars(length, vtype=GRB.BINARY, name=v)
-    except:
-        if verbose:
-            print("No variables found in data_dict")
-        raise ValueError("No variables found in data_dict")
-
-    # Add constraints
-    try:
-        for c in data_dict["constraints"]:
-            c = parse(c)
-            c = "m.addConstr(" + c + ")"
-            exec(c)
-    except:
-        if verbose:
-            print("No constraints found in data_dict")
-        raise ValueError("No constraints found in data_dict")
-
-    # Display Globals context
-    if verbose:
-        for key, value in globals().items():
-            print(key, value)
-        print("\n")
-
-    # TODO: this constraint still needs more work to be generalized, hard-coding for now
-    # to check if everything else is working
-    m.addConstrs((gp.quicksum(build[t] for t in Tower if r in Coverage[t]) >= iscovered[r]
-                        for r in Region), name="Build2cover")
-
-    # Set objective
-    try:
-        obj = data_dict["objective"][0]
-        obj = parse(obj)
-        obj = "m.setObjective(" + obj + ", "
-        obj += "GRB.MAXIMIZE" if data_dict["objective"][1].strip().lower() == "maximize" else "GRB.MINIMIZE"
-        obj += ")"
-        exec(obj)
-    except:
-        if verbose:
-            print("No objective found in data_dict")
-        raise ValueError("No objective found in data_dict")
-
-    # Optimize
-    m.optimize()
-
-    # This solution print is also hard-coded to test functionality.
-    # Shouldn't be too hard to generalize
-
-    # Print the solution
-    for tower in build.keys():
-        if (abs(build[tower].x) > 1e-6):
-            print(f"\n Build a cell tower at location Tower {tower}.")
-
-    total_population = 0
-
-    for region in range(len(Region)):
-        total_population += Population[region]
-
-    coverage = round(100*m.objVal/total_population, 2)
-
-    print(f"\n The population coverage associated to the cell towers build plan is: {coverage} %")
-
-    total_cost = 0
-
-    for tower in range(len(Tower)):
-        if (abs(build[tower].x) > 0.5):
-            total_cost += Cost[tower]*int(build[tower].x)
-
-    budget_consumption = round(100*total_cost/budget, 2)
-    print(f"\n The percentage of budget consumed associated to the cell towers build plan is: {budget_consumption} %")
 
 def portfolio_model(files):
     """
@@ -214,9 +90,15 @@ def portfolio_model(files):
     :return: None
     """
     # Load the data
-    stocks = pd.read_csv(files[0])
+    try:
+        stocks = pd.read_csv(files[0])
+    except:
+        return "Error: Please upload a csv file with a list of stocks"
     stocks = stocks.iloc[1:, 0].str.upper().str.strip().tolist()
-    data = yf.download(stocks, period="2y")
+    try:
+        data = yf.download(stocks, period="2y")
+    except:
+        return "Error: Please check the stock symbols and try again"
     
     # Compute statistics
     closes = np.transpose(data['Close'].to_numpy())
@@ -313,24 +195,29 @@ def general_model(data_dict, files, hardcode="None"):
     m = gp.Model("general_model")
     
     # Load the data
-    j = 0
     for f in files:
-        name = f.filename.split(".")[0]
-        data = io.BytesIO(f.read())
-        j += 1
-        file = pd.read_csv(data)
+        try:
+            file = pd.read_csv(f)
+        except:
+            return "Error: Please upload a csv file"
         if hardcode == "PowerPlant":
-            globals()[name] = file
-        # Parameteric the files
+            globals()[f.split(".")[0]] = pd.read_csv(f)
+        # Parameterize the files
         i = 0
         for key, value in file.items():
             key = key.strip()
             # The first column is the index for the rest of the column dictionaries
             if i == 0:
-                globals()[key] = {value[i] for i in range(len(value))}
+                # since the first row is index, int/float dtype is assumed
+                try:
+                    globals()[key] = value.to_list()
+                except:
+                    return "Error: First column must be index"
                 index = value.to_list()
             else:
-                globals()[key] = {index[i]: value[i] for i in range(len(value))}
+                # parse the data type of the value
+                column = [typeparse(value[i]) for i in range(len(value))]
+                globals()[key] = {index[i]: column[i] for i in range(len(column))}
             i += 1
 
     # Power Plant Hardcoded Data
@@ -355,34 +242,81 @@ def general_model(data_dict, files, hardcode="None"):
         globals()["t"] = globals()["s"].copy()
         globals()["m"] = {i: 0.8 if i in globals()["P_N"] else 0.01 for i in globals()["P"]}
         globals()["r"] = {i: 1 if i in ["BIOMASS", "GAS", "HYDRO", "OIL"] else .2 if i in globals()["P_N"] else .25 for i in globals()["P"]}
-
-    elif hardcode == "Coverage":
-        pass
+        i = 0
 
     # Create the variables
     variables = []
+    try:
+        var_test = data_dict["variables"]
+    except:
+        return "Error: Please add variables to the data"
     for v in data_dict["variables"]:
         var, Index = v.split("^")
         h1, h2 = Index.replace("{", "").replace("}", "").split(",") if "," in Index else (Index.replace("{", "").replace("}", ""), None)
         if h2 == None:
-            globals()[var] = m.addVars(globals()[h1])
+            try:
+                globals()[var] = m.addVars(globals()[h1], vtype=GRB.BINARY)
+            except:
+                return "Error: Please check the variable names"
         else:
-            globals()[var] = m.addVars(globals()[h1], globals()[h2])
+            if hardcode == "PowerPlant":
+                # This could be fixed if there was more time, an oversight on my part, I thought I could intuit the vtype
+                # from the data, but it seems like it needs to be a parameter in the data_dict
+                # So I will hardcode the vtype here for the first powerplant variable
+                if i == 0:
+                    globals()[var] = m.addVars(globals()[h1], globals()[h2], lb=0)
+                    print("m.addVars(" + h1 + ", " + h2 + ", lb=0)")
+                    i += 1
+                    variables.append(var)
+                    continue
+            try:
+                globals()[var] = m.addVars(globals()[h1], globals()[h2], vtype=GRB.BINARY)
+            except:
+                return "Error: Please check the variable names"
         variables.append(var)
 
     # Add the constraints and objective
+    try:
+        cons_test = data_dict["constraints"]
+    except:
+        return "Error: Please add constraints to the data"
     for c in data_dict["constraints"]:
         cons = parse(c)
-        exec("m.addConstrs(" + cons + ")")
-
-    objective = data_dict["objective"][0]
-    sense = "GRB.MAXIMIZE" if data_dict["objective"][1].strip().lower() == "maximize" else "GRB.MINIMIZE"
+        # count the number of 'for's in the constraint
+        iter_count = cons.count("for")
+        if iter_count == 1:
+            if verbose:
+                print("m.addConstr(" + cons + ")")
+            try:
+                exec("m.addConstr(" + cons + ")")
+            except:
+                return "Error: Please check the constraint"
+        elif iter_count == 2:
+            if verbose:
+                print("m.addConstrs(" + cons + ")")
+            try:
+                exec("m.addConstrs(" + cons + ")")
+            except:
+                return "Error: Please check the constraint"
+    try:
+        obj_test = data_dict["objective"]
+    except:
+        return "Error: Please add an objective to the data"
+    objective = data_dict["objective"]["formula"]
+    sense = "GRB.MAXIMIZE" if data_dict["objective"]["sense"].strip().lower() == "maximize" else "GRB.MINIMIZE"
     obj = "m.setObjective(" + parse(objective) + ", sense=" + sense + ")"
-    print(obj)
-    exec(obj)
+    if verbose:
+        print(obj)
+    try:
+        exec(obj)
+    except:
+        return "Error: Please check the objective"
 
-    m.optimize()                
+    m.optimize()
 
+    if m.status == GRB.INFEASIBLE:
+        return "Model is infeasible"
+    
     # Print the decision variables
     result = "\nDecision Variables:\n"
 
@@ -390,6 +324,32 @@ def general_model(data_dict, files, hardcode="None"):
         result += f"{v}: \n"
         for key, value in globals()[v].items():
             result += f"{key}: {value.x}\n"
+
+    if hardcode == "PowerPlant" and verbose:
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+
+        solution = pd.DataFrame() 
+        solution = pd.DataFrame(columns=['Hour', 'Power (MWh)', 'Plant']) 
+        plant_hour_pairs = [(h,i) for i in globals()["P"] for h in globals()["H"]  if globals()["z"][i,h].X > 0] 
+                    
+        solution['Hour'] = [pair[0] for pair in plant_hour_pairs]
+        solution['Plant'] = [pair[1] for pair in plant_hour_pairs]
+        solution['Power generated (MWh)'] = [globals()["z"][pair[1],pair[0]].X for pair in plant_hour_pairs]
+                    
+        print("Power supply:")
+        fig, ax = plt.subplots(figsize=(15,6)) 
+        sns.pointplot(data=solution,x='Hour', y='Power generated (MWh)', hue='Plant')
+        sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
+        plt.show()
+
+        print("Power demand:")
+        fig, ax = plt.subplots(figsize=(15,6)) 
+        demand = pd.DataFrame(columns=['Hour', 'Demand (MWh)']) 
+        demand['Hour'] = list(globals()["H"])
+        demand['Demand (MWh)'] = [globals()["d"][h] for h in globals()["H"]]
+        sns.pointplot(data=demand,x='Hour', y='Demand (MWh)')
+        plt.show() 
 
     return result
 
