@@ -196,12 +196,14 @@ def general_model(data_dict, files, hardcode="None"):
     
     # Load the data
     for f in files:
+        name = f.filename.split(".")[0]
+        data = io.BytesIO(f.read())
         try:
-            file = pd.read_csv(f)
+            file = pd.read_csv(data)
         except:
             return "Error: Please upload a csv file"
         if hardcode == "PowerPlant":
-            globals()[f.split(".")[0]] = pd.read_csv(f)
+            globals()[f.split(".")[0]] = pd.read_csv(data)
         # Parameterize the files
         i = 0
         for key, value in file.items():
