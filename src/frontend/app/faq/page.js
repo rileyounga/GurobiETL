@@ -44,10 +44,13 @@ export default function Content() {
 
         <div className={styles.question}>
           <h1># Portfolio optimization</h1>
+          <p>The portfolio optimization problem takes a list of stock ticker values from a file and optimizes a portfolo based on the expected return and volatility of the stocks.</p>
+          <p>After running a portfolio optimization problem, the dashboard will present a card detailing a portfolio of stocks which minimizes risk. Additionally, a visualization of the problem is displayed on a chart.</p>
         </div>
 
         <div className={styles.question}>
           <h1># Mathematical optimization</h1>
+          <p>The mathematical optimization problem takes objectives, variables, and constraints and returns an optimal set of decisions.</p>
         </div>
 
         <div className={styles.question}>
@@ -72,6 +75,7 @@ export default function Content() {
 
         <div className={styles.question}>
           <h1># Dashboard</h1>
+          <p>If a problem has been run, the dashboard will display analysis results. Otherwise, a link to the problem tab will be displayed.</p>
         </div>
       </div>
     </main>
