@@ -2,6 +2,7 @@ import pandas as pd
 import gurobipy as gp
 from utils import parse, typeparse
 from gurobipy import GRB
+import ast
 
 verbose = False
         
@@ -82,6 +83,27 @@ def general_model(data_dict, files, hardcode="None"):
 
     return result
 
+def files_df(f1, f2):
+    # Unlike in the portfolio optimization where we know how many files and their columns, we make no
+    # assumptions here, so we can't call file indexes or column names
+
+    # Why are you trying to merge these files at all? 
+    # Coverage is based on the Towers indexes, Regions is based on a separate index
+
+    # Read the CSV files into DataFrames
+
+    df1 = pd.read_csv(f1, header=None, names=['Tower', 'Cost', "Coverage"])
+    df2 = pd.read_csv(f2, header=None, names=['Region', 'Population'])
+    # Convert string representation of sets to actual sets using ast.literal_eval
+    df1['Coverage'] = df1['Coverage'].apply(lambda x: ast.literal_eval(x) )
+
+    # Create a new DataFrame by repeating rows for each coverage value
+    df1 = df1.explode('Coverage')
+    merged_df = pd.merge(df2, df1, left_on='Coverage', right_on='Region', how='left')
+
+    print(merged_df)
+    return merged_df
+
 def main():
     files = ["coverage.csv", "population.csv"]
     data_dict = {
@@ -91,6 +113,9 @@ def main():
                         "/sum_t^{Tower} (build_t if r in Coverage_t) >= iscovered_{r} /forall_r^{Region}"],
 
     }
+
+    info=files_df(files[0],files[1])
+    return
     result = general_model(data_dict, files, "Coverage")
     print(result)
 
