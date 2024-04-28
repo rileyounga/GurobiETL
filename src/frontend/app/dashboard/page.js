@@ -16,17 +16,21 @@ export default function Content() {
     return (
       <main className={styles.main}>
           <div className={styles.grid}>
-            <div className={styles.card}>
+            { result &&
+            <div className={styles.chart}>
               <h2>{result[1]}</h2>
               {result.slice(2).map((line) => (
                 <p>{line}</p>
               ))}
             </div>
+            }
             
+            { solution["fig"] &&
             <div className={styles.chart}>
               <h2>Visualization:</h2>
                 <img id="figure" src={"data:image/png;base64," + solution.fig} />
             </div>
+            }
 
           </div>
       </main>
