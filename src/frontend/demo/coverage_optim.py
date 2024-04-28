@@ -3,6 +3,8 @@ import gurobipy as gp
 from utils import parse, typeparse
 from gurobipy import GRB
 import ast
+import matplotlib.pyplot as plt
+import networkx as nx
 
 verbose = False
         
@@ -19,7 +21,7 @@ def general_model(data_dict, files, hardcode="None"):
     # Load the data
     for f in files:
         file = pd.read_csv(f)
-        if hardcode == "PowerPlant":
+        if hardcode == "Powerplant":
             globals()[f.split(".")[0]] = pd.read_csv(f)
         # Parameteric the files
         i = 0
@@ -81,28 +83,94 @@ def general_model(data_dict, files, hardcode="None"):
         for key, value in globals()[v].items():
             result += f"{key}: {value.x}\n"
 
+    tree = plot_coverage_tree()
     return result
 
-def files_df(f1, f2):
-    # Unlike in the portfolio optimization where we know how many files and their columns, we make no
-    # assumptions here, so we can't call file indexes or column names
+def plot_coverage_tree():
+    """
+    Create a tree matching selected Towers to their Coverage Regions.
+    Highlight the selected Towers, but display all Towers and Regions.
+    """
 
-    # Why are you trying to merge these files at all? 
-    # Coverage is based on the Towers indexes, Regions is based on a separate index
+    for key, value in globals().items():
+        print(key, value, type(value))
 
-    # Read the CSV files into DataFrames
+    # Find the coverage by extracting the first global variable mapping indexes to sets
+    for var in globals():
+        if isinstance(globals()[var], dict) and len(globals()[var]) > 0 and isinstance(list(globals()[var].values())[0], set):
+            coverage = globals()[var]
+            break
 
-    df1 = pd.read_csv(f1, header=None, names=['Tower', 'Cost', "Coverage"])
-    df2 = pd.read_csv(f2, header=None, names=['Region', 'Population'])
-    # Convert string representation of sets to actual sets using ast.literal_eval
-    df1['Coverage'] = df1['Coverage'].apply(lambda x: ast.literal_eval(x) )
+    # Find the regions by extracting the longest global variable list
+    max_len = 0
+    for var in globals():
+        if isinstance(globals()[var], list) and len(globals()[var]) > max_len:
+            region = globals()[var]
+            max_len = len(globals()[var])
 
-    # Create a new DataFrame by repeating rows for each coverage value
-    df1 = df1.explode('Coverage')
-    merged_df = pd.merge(df2, df1, left_on='Coverage', right_on='Region', how='left')
 
-    print(merged_df)
-    return merged_df
+    # Find the selected Towers by extracting the global variable with the same indexes as the coverage that is also a gurobi variable
+    for var in globals():
+        if isinstance(globals()[var], gp.tupledict) and len(globals()[var]) > 0 and set(globals()[var].keys()) == set(coverage.keys()):
+            selected = globals()[var]
+            break
+
+    # Find the covered regions by extracting the global variable with the same indexes as the regions that is also a gurobi variable
+    for var in globals():
+        if isinstance(globals()[var], gp.tupledict) and len(globals()[var]) > 0 and set(globals()[var].keys()) == set(region):
+            covered = globals()[var]
+            break
+
+    print(coverage)
+    print(region)
+    print(selected)
+    print(covered)
+
+    # now coverage is a dictionary mapping ints to sets
+    # region is a list of ints
+    # selected is a gurobi variable mapping ints to gb.Var (binary)
+
+    G = nx.DiGraph()
+
+    # Add the nodes
+    for r in region:
+        # if the region is covered, color it lightblue
+        if covered[r].x == 1:
+            G.add_node(f"Region_{r}", pos=(0, list(region).index(r)), color='lightblue')
+        else:
+            # if the region is not covered, color it red
+            G.add_node(f"Region_{r}", pos=(0, list(region).index(r)), color='red')
+
+    for t in coverage:
+        # If the tower is selected, color it blue
+        if selected[t].x == 1:
+            G.add_node(f"Tower_{t}", pos=(1, list(coverage.keys()).index(t)), color='blue')
+        else:
+            # If the tower is not selected, color it grey
+            G.add_node(f"Tower_{t}", pos=(1, list(coverage.keys()).index(t)), color='grey')
+
+    # Add the edges
+    for t in selected:
+        for r in coverage[t]:
+            # If the tower is selected, color the edge blue
+            if selected[t].x == 1:
+                G.add_edge(f"Tower_{t}", f"Region_{r}", color='blue', weight=2)
+            else:
+                # If the tower is not selected, color the edge grey
+                G.add_edge(f"Tower_{t}", f"Region_{r}", color='grey', weight=0.1)
+
+    # Draw the graph
+    pos = nx.get_node_attributes(G, 'pos')
+    nodes_color = [G.nodes[n].get('color', 'grey') for n in G.nodes()]  # Use a default color if no color attribute is found
+    edges_color = nx.get_edge_attributes(G, 'color')
+    edges_weight = nx.get_edge_attributes(G, 'weight')  # Get the edge weights
+    # find the max length of a node name to set the node size
+    max_length = max([len(n) for n in G.nodes()])
+    nx.draw(G, pos, with_labels=True, node_color=nodes_color, edge_color=list(edges_color.values()), 
+            edgecolors='grey', node_size=max_length*100, font_size=8, font_color='black', font_weight='bold')
+    nx.draw_networkx_edges(G, pos, edge_color=list(edges_color.values()), width=list(edges_weight.values()))  # Draw the edges with weights
+    plt.show()
+
 
 def main():
     files = ["coverage.csv", "population.csv"]
@@ -114,10 +182,8 @@ def main():
 
     }
 
-    info=files_df(files[0],files[1])
-    return
     result = general_model(data_dict, files, "Coverage")
-    print(result)
+    #print(result)
 
 if __name__ == "__main__":
     main()

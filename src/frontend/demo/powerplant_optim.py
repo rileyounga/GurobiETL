@@ -2,6 +2,8 @@ import pandas as pd
 import gurobipy as gp
 from utils import parse, typeparse
 from gurobipy import GRB
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 verbose = False
         
@@ -114,33 +116,54 @@ def general_model(data_dict, files, hardcode="None"):
         for key, value in globals()[v].items():
             result += f"{key}: {value.x}\n"
 
-    if hardcode == "PowerPlant" and verbose:
-        import matplotlib.pyplot as plt
-        import seaborn as sns
-
-        solution = pd.DataFrame() 
-        solution = pd.DataFrame(columns=['Hour', 'Power (MWh)', 'Plant']) 
-        plant_hour_pairs = [(h,i) for i in globals()["P"] for h in globals()["H"]  if globals()["z"][i,h].X > 0] 
-                    
-        solution['Hour'] = [pair[0] for pair in plant_hour_pairs]
-        solution['Plant'] = [pair[1] for pair in plant_hour_pairs]
-        solution['Power generated (MWh)'] = [globals()["z"][pair[1],pair[0]].X for pair in plant_hour_pairs]
-                    
-        print("Power supply:")
-        fig, ax = plt.subplots(figsize=(15,6)) 
-        sns.pointplot(data=solution,x='Hour', y='Power generated (MWh)', hue='Plant')
-        sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
-        plt.show()
-
-        print("Power demand:")
-        fig, ax = plt.subplots(figsize=(15,6)) 
-        demand = pd.DataFrame(columns=['Hour', 'Demand (MWh)']) 
-        demand['Hour'] = list(globals()["H"])
-        demand['Demand (MWh)'] = [globals()["d"][h] for h in globals()["H"]]
-        sns.pointplot(data=demand,x='Hour', y='Demand (MWh)')
-        plt.show() 
+    if hardcode == "PowerPlant":
+        supply = plot_power_plant_supply(globals()["H"], globals()["P"], globals()["z"])
+        demand = plot_power_demand(globals()["H"], globals()["d"])
 
     return result
+
+def plot_power_plant_supply(H, P, Z):
+    """
+    Plot power plant supply
+    :param H: list of hours
+    :param P: list of plants
+    :param Z: gurobi variable
+    :return: None
+    """
+
+    solution = pd.DataFrame() 
+    solution = pd.DataFrame(columns=['Hour', 'Power (MWh)', 'Plant']) 
+    plant_hour_pairs = [(h,i) for i in P for h in H if Z[i,h].X > 0] 
+                
+    solution['Hour'] = [pair[0] for pair in plant_hour_pairs]
+    solution['Plant'] = [pair[1] for pair in plant_hour_pairs]
+    solution['Power generated (MWh)'] = [Z[pair[1],pair[0]].X for pair in plant_hour_pairs]
+                
+    print("Power supply:")
+    fig, ax = plt.subplots(figsize=(15,6)) 
+    sns.pointplot(data=solution,x='Hour', y='Power generated (MWh)', hue='Plant')
+    sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
+    plt.show()
+
+    return fig
+
+def plot_power_demand(H, D):
+    """
+    Plot power demand
+    :param H: list of hours
+    :param D: dictionary of demand
+    :return: None
+    """
+
+    print("Power demand:")
+    fig, ax = plt.subplots(figsize=(15,6)) 
+    demand = pd.DataFrame(columns=['Hour', 'Demand (MWh)']) 
+    demand['Hour'] = list(H)
+    demand['Demand (MWh)'] = [D[h] for h in H]
+    sns.pointplot(data=demand,x='Hour', y='Demand (MWh)')
+    plt.show()
+    
+    return fig
 
 def main():
     files = ["fixed_costs_revised.csv", "demand.csv", "fuel_costs.csv", "startup_costs.csv", "plant_capacities.csv", "operating_costs.csv"]
