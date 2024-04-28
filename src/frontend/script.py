@@ -12,7 +12,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
-from utils import parse, typeparse
+from utils import parse, typeparse, fig2data
+from visualizations import *
 
 """
 Context:
@@ -53,33 +54,34 @@ def home():
         return jsonify({"error": "Please select a problem type"})
     
     if problemType == "mathematical_optimization":
-        result = general_model(data_dict, files, hardcode="PowerPlant")
+        result, fig = general_model(data_dict, files, hardcode="PowerPlant")
         response["result"] = result
         if verbose:
             print(result)
+        try:
+            response["fig"] = base64.b64encode(fig).decode()
+        except:
+            response["fig"] = None
 
     elif problemType == "location_analysis":
-        result = general_model(data_dict, files)
+        result, fig = general_model(data_dict, files)
         response["result"] = result
         if verbose:
             print(result)
+        try:
+            response["fig"] = base64.b64encode(fig).decode()
+        except:
+            response["fig"] = None
 
     elif problemType == "portfolio_optimization":
         result, fig = portfolio_model(files)
         response["result"] = result
         if verbose:
             print(result)
-        response["fig"] = base64.b64encode(fig).decode()
-        """
-        To be used by the frontend like so:
-        fetch('/get_image')
-            .then(response => response.json())
-            .then(data => {
-                let img = document.createElement('img');
-                img.src = data.image;
-                document.body.appendChild(img);
-            });
-        """
+        try:
+            response["fig"] = base64.b64encode(fig).decode()
+        except:
+            response["fig"] = None
     return jsonify(response)
 
 def portfolio_model(files):
@@ -120,9 +122,6 @@ def portfolio_model(files):
 
     m.optimize()
 
-    #TODO: decide how we want to display the results
-    # for now, I'll just build a string to jsonify return
-
     # Print the optimal portfolio
     result = "\nOptimal Portfolio:\n"
     for i in range(len(stocks)):
@@ -131,58 +130,42 @@ def portfolio_model(files):
             # print the stock and its allocation as a percentage
             result += f"{stocks[i]}: {x.X[i]*100:.2f}%\n"
 
-    fig = plot_portfolio(m, x, delta, std, stocks)
-    return result, fig
+    bubble = plot_portfolio_bubble(std, delta, stocks, x)
+    pie = plot_portfolio_pie(stocks, x)
+    frontier = plot_efficient_frontier(m, x, delta, std, stocks)
+    forecast = plot_portfolio_forecast(data)
 
-def plot_portfolio(m, x, delta, std, stocks):
-    """
-    Plot the efficient frontier
-    :param m: gurobi model
-    :param x: gurobi variable
-    :param delta: numpy array
-    :param std: numpy array
-    :param stocks: list
-    :return: None
-    """
-    # Plot the efficient frontier
-    minrisk_volatility = math.sqrt(m.ObjVal)
-    minrisk_return = delta @ x.X
-    # Create an expression representing the expected return for the portfolio
-    portfolio_return = delta @ x
-    target = m.addConstr(portfolio_return == minrisk_return, 'target')
+    # prepare the plots for display
+    bubble = fig2data(bubble)
+    pie = fig2data(pie)
+    frontier = fig2data(frontier)
+    forecast = fig2data(forecast)
 
-    # Solve for efficient frontier by varying target return
-    frontier = np.empty((2,0))
-    for r in np.linspace(delta.min(), delta.max(), 15):
-        target.rhs = r
-        m.optimize()
-        frontier = np.append(frontier, [[math.sqrt(m.ObjVal)],[r]], axis=1)
+    #TODO: Here I am merging the plots into a 20, 16 single image
+    fig, ax = plt.subplots(2, 2, figsize=(20, 16))
+    ax[0, 0].imshow(bubble)
+    ax[0, 0].axis('off')
+    ax[0, 0].set_title('Portfolio Bubble Chart')
+    ax[0, 1].imshow(pie)
+    ax[0, 1].axis('off')
+    ax[0, 1].set_title('Portfolio Pie Chart')
+    ax[1, 0].imshow(frontier)
+    ax[1, 0].axis('off')
+    ax[1, 0].set_title('Efficient Frontier')
+    ax[1, 1].imshow(forecast)
+    ax[1, 1].axis('off')
+    ax[1, 1].set_title('Portfolio Forecast')
 
-    fig, ax = plt.subplots(figsize=(10,8))
+    fig.tight_layout()
+    fig.show()
 
-    # Plot volatility versus expected return for individual stocks
-    ax.scatter(x=std, y=delta,
-            color='Blue', label='Individual Stocks')
-    for i, stock in enumerate(stocks):
-        ax.annotate(stock, (std[i], delta[i]))
+    # save the image to a byte stream
+    img = io.BytesIO()
+    FigureCanvas(fig).print_png(img)
+    output = img.getvalue()
 
-    # Plot volatility versus expected return for minimum risk portfolio
-    ax.scatter(x=minrisk_volatility, y=minrisk_return, color='DarkGreen')
-    ax.annotate('Minimum\nRisk\nPortfolio', (minrisk_volatility, minrisk_return),
-                horizontalalignment='right')
+    return result, output
 
-    # Plot efficient frontier
-    ax.plot(frontier[0], frontier[1], label='Efficient Frontier', color='DarkGreen')
-
-    # Format and display the final plot
-    ax.set_xlabel('Volatility (standard deviation)')
-    ax.set_ylabel('Expected Return')
-    ax.legend()
-    ax.grid()
-    
-    output = io.BytesIO()
-    FigureCanvas(fig).print_png(output)
-    return output.getvalue()
 
 def general_model(data_dict, files, hardcode="None"):
     """
@@ -200,10 +183,10 @@ def general_model(data_dict, files, hardcode="None"):
         data = io.BytesIO(f.read())
         try:
             file = pd.read_csv(data)
+            if hardcode == "PowerPlant":
+                globals()[name.strip()] = file
         except:
             return "Error: Please upload a csv file"
-        if hardcode == "PowerPlant":
-            globals()[f.split(".")[0]] = pd.read_csv(data)
         # Parameterize the files
         i = 0
         for key, value in file.items():
@@ -255,6 +238,7 @@ def general_model(data_dict, files, hardcode="None"):
     for v in data_dict["variables"]:
         var, Index = v.split("^")
         h1, h2 = Index.replace("{", "").replace("}", "").split(",") if "," in Index else (Index.replace("{", "").replace("}", ""), None)
+        h1, h2 = h1.strip(), h2.strip() if h2 != None else None
         if h2 == None:
             try:
                 globals()[var] = m.addVars(globals()[h1], vtype=GRB.BINARY)
@@ -328,32 +312,32 @@ def general_model(data_dict, files, hardcode="None"):
             result += f"{key}: {value.x}\n"
 
     if hardcode == "PowerPlant" and verbose:
-        import matplotlib.pyplot as plt
-        import seaborn as sns
+        supply = plot_power_plant_supply(globals()["H"], globals()["P"], globals()["Z"])
+        demand = plot_power_demand(globals()["H"], globals()["d"])
+        supply = fig2data(supply)
+        demand = fig2data(demand)
 
-        solution = pd.DataFrame() 
-        solution = pd.DataFrame(columns=['Hour', 'Power (MWh)', 'Plant']) 
-        plant_hour_pairs = [(h,i) for i in globals()["P"] for h in globals()["H"]  if globals()["z"][i,h].X > 0] 
-                    
-        solution['Hour'] = [pair[0] for pair in plant_hour_pairs]
-        solution['Plant'] = [pair[1] for pair in plant_hour_pairs]
-        solution['Power generated (MWh)'] = [globals()["z"][pair[1],pair[0]].X for pair in plant_hour_pairs]
-                    
-        print("Power supply:")
-        fig, ax = plt.subplots(figsize=(15,6)) 
-        sns.pointplot(data=solution,x='Hour', y='Power generated (MWh)', hue='Plant')
-        sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
-        plt.show()
+        #TODO: Here I am merging the plots into a 20, 8 single image
+        fig, ax = plt.subplots(1, 2, figsize=(20, 8))
+        ax[0].imshow(supply)
+        ax[0].axis('off')
+        ax[0].set_title('Power Plant Supply')
+        ax[1].imshow(demand)
+        ax[1].axis('off')
+        ax[1].set_title('Power Demand')
+        
+        fig.tight_layout()
+        fig.show()
 
-        print("Power demand:")
-        fig, ax = plt.subplots(figsize=(15,6)) 
-        demand = pd.DataFrame(columns=['Hour', 'Demand (MWh)']) 
-        demand['Hour'] = list(globals()["H"])
-        demand['Demand (MWh)'] = [globals()["d"][h] for h in globals()["H"]]
-        sns.pointplot(data=demand,x='Hour', y='Demand (MWh)')
-        plt.show() 
+        # save the image to a byte stream
+        img = io.BytesIO()
+        FigureCanvas(fig).print_png(img)
+        fig = img.getvalue()
 
-    return result
+    else:
+        fig = None
+        
+    return result, fig
 
 if __name__ == '__main__':
     app.run(debug=True, port=8080)
