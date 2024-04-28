@@ -23,11 +23,6 @@ export default function Content() {
         </div>
 
         <div className={styles.question}>
-          <h1># What license is Gurobi Wrapper released under?</h1>
-          <p>...</p>
-        </div>
-
-        <div className={styles.question}>
           <h1># Where can the source code be found?</h1>
           <p>The source code is hosted <a href="https://github.com/rileyounga/GurobiETL">on Github</a>.</p>
         </div>
@@ -55,6 +50,7 @@ export default function Content() {
 
         <div className={styles.question}>
           <h1># Location analysis</h1>
+          <p>Location analysis problems seeks an optimal placement of facilities. Here, finding the "optimal" solution can involve minimizing factors like transportation costs or considering how facility placements might encroach upon residential housing.</p>
         </div>
 
 
