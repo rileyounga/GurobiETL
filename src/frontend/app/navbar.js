@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { usePathname } from 'next/navigation';
 import styles from "./navbar.module.css"
@@ -21,6 +21,5 @@ export default function Navbar() {
         ))}
       </div>
     </div>
-
   );
 }

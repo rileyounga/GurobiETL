@@ -3,6 +3,76 @@
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  padding: 10rem;
-  min-height: 100vh;
+  padding: 3rem;
+}
+
+.form {
+  width: var(--max-width);
+}
+
+.form > div {
+  margin: 1rem;
+}
+
+.form h1 {
+  font-weight: 600;
+  font-size: 1em;
+}
+
+.dynamiclist {
+  display: inline;
+}
+.dynamiclist button {
+  border: 1px red solid;
+}
+
+.form input[type=text] {
+  border: 1px solid gainsboro;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+.form input[type=file]::file-selector-button {
+  border: 1px solid gainsboro;
+  border-radius: 5px;
+}
+
+.form button {
+  border: 1px solid gainsboro;
+  border-radius: 5px;
+}
+
+.form select {
+  border: 1px solid gainsboro;
+  border-radius: 5px;
+}
+
+.problems {
+  display: inline;
+  max-width: 100%;
+  width: var(--max-width);
+  grid-gap: 1rem;
+  cursor: pointer;
+}
+
+.prob {
+  display: inline-flex;
+  padding: 1rem;
+  color: grey;
+}
+
+.prob:hover {
+  color: dimgrey;
+  border-bottom-style: solid;
+  border-width: 2px;
+  border-color: darkgrey;
+}
+
+.probsel {
+  display: inline-flex;
+  padding: 1rem;
+  color: black;
+  border-bottom-style: solid;
+  border-width: 2px;
+  border-color: black;
 }

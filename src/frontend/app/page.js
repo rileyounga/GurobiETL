@@ -4,13 +4,13 @@ export default function Content() {
   return (
     <main className={styles.main}>
       <div className={styles.center}>
-        <h1>Gurobi Wrapper</h1>
+        <h1>GurobiETl</h1>
       </div>
       
       <div className={styles.grid}>
         <a href="/dashboard" className={styles.card}>
           <h2>Dashboard</h2>
-          <p>View output from the Gurobi API.</p>
+          <p>View output from the Gurobi API</p>
         </a>
 
         <a href="/problem" className={styles.card}>

@@ -6,12 +6,20 @@
   padding: 4rem;
 }
 
+.main a {
+  font-weight: 600;
+  font-size: 1.8rem;
+  text-decoration: underline;
+}
+
 .chart {
+  background: white;
   margin: 0px;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   border: 1px solid gainsboro;
   border-radius: 5px;
   grid-column: 1 / -1;
+  padding: 1rem;
 }
 
 .chart h2 {
@@ -29,10 +37,12 @@
 }
 
 .card {
+  background: white;
   margin: 0px;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   border: 1px solid gainsboro;
   border-radius: 5px;
+  padding: 1rem;
 }
 
 .card h2 {
