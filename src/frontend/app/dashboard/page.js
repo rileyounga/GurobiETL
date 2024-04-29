@@ -18,11 +18,10 @@ export default function Content() {
           <div className={styles.grid}>
             { solution["result"] &&
             <div className={styles.chart}>
-              <h2>Result:</h2>
               <table>
                 <tr>
                   {Object.keys(solution["result"][0]).map((col) => (
-                    <td>{col}</td>
+                    <th>{col}</th>
                   ))}
                 </tr>
                 {solution["result"].map((line) => (
@@ -37,9 +36,8 @@ export default function Content() {
             }
             
             { solution["fig"] &&
-            solution["fig"].map((image, index) => (
+            solution["fig"].map((image) => (
               <div className={styles.chart}>
-                <h2>Visualization {index+1}:</h2>
                 <Image
                   id="figure"
                   src={"data:image/png;base64," + image}
