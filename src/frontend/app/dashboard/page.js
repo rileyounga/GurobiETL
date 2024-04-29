@@ -13,25 +13,16 @@ export default function Content() {
     );
   }
   else {
+    let result = solution.result.split('\n');
     return (
       <main className={styles.main}>
           <div className={styles.grid}>
-            { solution["result"] &&
+            { result &&
             <div className={styles.chart}>
-              <table>
-                <tr>
-                  {Object.keys(solution["result"][0]).map((col) => (
-                    <th>{col}</th>
-                  ))}
-                </tr>
-                {solution["result"].map((line) => (
-                  <tr>
-                    {Object.values(line).map((val) => (
-                      <td>{val}</td>
-                    ))}
-                  </tr>
-                ))}
-              </table>
+              <h2>{result[1]}</h2>
+              {result.slice(2).map((line) => (
+                <p>{line}</p>
+              ))}
             </div>
             }
             
