@@ -21,7 +21,7 @@ export default function Content() {
               <table>
                 <tr>
                   {Object.keys(solution["result"][0]).map((col) => (
-                    <td>{col}</td>
+                    <th>{col}</th>
                   ))}
                 </tr>
                 {solution["result"].map((line) => (
