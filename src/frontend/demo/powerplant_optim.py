@@ -16,13 +16,13 @@ def general_model(data_dict, files, hardcode="None"):
     :return: None
     """
     m = gp.Model("general_model")
-    
+
     # Load the data
     for f in files:
         file = pd.read_csv(f)
         if hardcode == "PowerPlant":
             globals()[f.split(".")[0]] = pd.read_csv(f)
-        # Parameteric the files
+        # Parameterize the files
         i = 0
         for key, value in file.items():
             key = key.strip()
@@ -40,22 +40,20 @@ def general_model(data_dict, files, hardcode="None"):
     # Power Plant Hardcoded Data
     if hardcode == "PowerPlant":
         date = "2011-07-01"
-        year = int(date.split("-")[0])
-        month = int(date.split("-")[1])
-        day = int(date.split("-")[2])
-        # unfortunately the example problem performs data operations after loading the data, 
+        year, month, day = map(int, date.split("-"))
+        # unfortunately the example problem performs data operations after loading the data,
         # something that can't be handled by the current implementation so we have to hardcode
         # the data here, If I have time I will look into this bit more
-        globals()["d"] = globals()["demand"][(globals()["demand"]["YEAR"]==year)&(globals()["demand"]["MONTH"]==month)&(globals()["demand"]["DAY"]==day)].set_index(["HOUR"]).LOAD.to_dict()
+        globals()["d"] = globals()["demand"][(globals()["demand"]["YEAR"] == year) & (globals()["demand"]["MONTH"] == month) & (globals()["demand"]["DAY"] == day)].set_index(["HOUR"]).LOAD.to_dict()
         globals()["H"] = set(globals()["d"].keys())
         globals()["P"] = set(globals()["plant_capacities"]["Plant"].unique())
         globals()["p_type"] = globals()["plant_capacities"].set_index(["Plant"]).PlantType.to_dict()
-        globals()["P_N"] = set([i for i in globals()["P"] if globals()["p_type"][i]=="NUCLEAR"])
+        globals()["P_N"] = set([i for i in globals()["P"] if globals()["p_type"][i] == "NUCLEAR"])
         globals()["fuel_type"] = globals()["plant_capacities"].set_index(["Plant"]).FuelType.to_dict()
         globals()["c"] = globals()["plant_capacities"].set_index(["Plant"]).Capacity.to_dict()
         globals()["f"] = {i: globals()["fuel_costs"].T.to_dict()[9][globals()["fuel_type"][i]] for i in globals()["fuel_type"].keys()}
-        globals()["o"] = {i: globals()["operating_costs"][globals()["operating_costs"]['year']==year].T.to_dict()[9][globals()["fuel_type"][i]] for i in globals()["fuel_type"].keys()}
-        globals()["s"] = {i: globals()["startup_costs"][globals()["startup_costs"]['year']==year].T.to_dict()[9][globals()["fuel_type"][i]] for i in globals()["fuel_type"].keys()}
+        globals()["o"] = {i: globals()["operating_costs"][globals()["operating_costs"]['year'] == year].T.to_dict()[9][globals()["fuel_type"][i]] for i in globals()["fuel_type"].keys()}
+        globals()["s"] = {i: globals()["startup_costs"][globals()["startup_costs"]['year'] == year].T.to_dict()[9][globals()["fuel_type"][i]] for i in globals()["fuel_type"].keys()}
         globals()["t"] = globals()["s"].copy()
         globals()["m"] = {i: 0.8 if i in globals()["P_N"] else 0.01 for i in globals()["P"]}
         globals()["r"] = {i: 1 if i in ["BIOMASS", "GAS", "HYDRO", "OIL"] else .2 if i in globals()["P_N"] else .25 for i in globals()["P"]}
@@ -66,7 +64,7 @@ def general_model(data_dict, files, hardcode="None"):
     for v in data_dict["variables"]:
         var, Index = v.split("^")
         h1, h2 = Index.replace("{", "").replace("}", "").split(",") if "," in Index else (Index.replace("{", "").replace("}", ""), None)
-        if h2 == None:
+        if h2 is None:
             globals()[var] = m.addVars(globals()[h1], vtype=GRB.BINARY)
         else:
             if hardcode == "PowerPlant":
@@ -107,7 +105,7 @@ def general_model(data_dict, files, hardcode="None"):
 
     if m.status == GRB.INFEASIBLE:
         return "Model is infeasible"
-    
+
     # Print the decision variables
     result = "\nDecision Variables:\n"
 
@@ -131,17 +129,17 @@ def plot_power_plant_supply(H, P, Z):
     :return: None
     """
 
-    solution = pd.DataFrame() 
-    solution = pd.DataFrame(columns=['Hour', 'Power (MWh)', 'Plant']) 
-    plant_hour_pairs = [(h,i) for i in P for h in H if Z[i,h].X > 0] 
-                
+    solution = pd.DataFrame()
+    solution = pd.DataFrame(columns=['Hour', 'Power (MWh)', 'Plant'])
+    plant_hour_pairs = [(h, i) for i in P for h in H if Z[i, h].X > 0]
+
     solution['Hour'] = [pair[0] for pair in plant_hour_pairs]
     solution['Plant'] = [pair[1] for pair in plant_hour_pairs]
-    solution['Power generated (MWh)'] = [Z[pair[1],pair[0]].X for pair in plant_hour_pairs]
-                
+    solution['Power generated (MWh)'] = [Z[pair[1], pair[0]].X for pair in plant_hour_pairs]
+
     print("Power supply:")
-    fig, ax = plt.subplots(figsize=(15,6)) 
-    sns.pointplot(data=solution,x='Hour', y='Power generated (MWh)', hue='Plant')
+    fig, ax = plt.subplots(figsize=(15, 6))
+    sns.pointplot(data=solution, x='Hour', y='Power generated (MWh)', hue='Plant')
     sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
     plt.show()
 
@@ -156,13 +154,13 @@ def plot_power_demand(H, D):
     """
 
     print("Power demand:")
-    fig, ax = plt.subplots(figsize=(15,6)) 
-    demand = pd.DataFrame(columns=['Hour', 'Demand (MWh)']) 
+    fig, ax = plt.subplots(figsize=(15, 6))
+    demand = pd.DataFrame(columns=['Hour', 'Demand (MWh)'])
     demand['Hour'] = list(H)
     demand['Demand (MWh)'] = [D[h] for h in H]
-    sns.pointplot(data=demand,x='Hour', y='Demand (MWh)')
+    sns.pointplot(data=demand, x='Hour', y='Demand (MWh)')
     plt.show()
-    
+
     return fig
 
 def main():
@@ -170,18 +168,13 @@ def main():
     data_dict = {
         "objective": {"formula": "/sum_i^{Plant} /sum_h^{H} (f_i * z_{i,h} + o_i * u_{i,h} + s_i * v_{i,h} + t_i * w_{i,h})", "sense": "minimize"},
         "constraints": ["/sum_i^{Plant} z_{i,h} = d_h /forall_h^{H}",
-                        
                         "z_{i,h} <= Capacity_i * u_{i,h} /forall_i^{Plant} /forall_h^{H}",
                         "z_{i,h} >= m_i * Capacity_i * u_{i,h} /forall_i^{Plant} /forall_h^{H}",
-
                         "z_{i,h} >= m_i * Capacity_i /forall_i^{P_N} /forall_h^{H}",
-
                         "z_{i,h} - z_{i,h-1} >= -r_i * Capacity_i /forall_i^{Plant} /forall_h^{H} if h > 1",
                         "z_{i,h} - z_{i,h-1} <= r_i * Capacity_i /forall_i^{Plant} /forall_h^{H} if h > 1",
-
                         "v_{i,h} <= u_{i,h} /forall_i^{Plant} /forall_h^{H}",
                         "w_{i,h} <= 1 - u_{i,h} /forall_i^{Plant} /forall_h^{H}",
-                        
                         "v_{i,h} - w_{i,h} = u_{i,h} - u_{i,h-1} /forall_i^{Plant} /forall_h^{H} if h > 1",
                         ],
         "variables": ["z^{Plant,H}", "u^{Plant,H}", "v^{Plant,H}", "w^{Plant,H}"]

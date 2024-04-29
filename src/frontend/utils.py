@@ -191,22 +191,3 @@ def typeparse(value):
             return ret
     else:
         return value
-    
-def fig2data(fig):
-    """
-    Convert a Matplotlib figure to a 4D numpy array with RGBA channels and return it
-    :param fig: Matplotlib figure
-    :return: 4D numpy array
-    """
-    # Draw the figure
-    fig.canvas.draw()
-
-    # Get the RGBA buffer from the figure
-    w, h = fig.canvas.get_width_height()
-    buf = np.frombuffer(fig.canvas.tostring_argb(), dtype=np.uint8)
-    buf.shape = (h, w, 4)
-
-    # Reorder the channels
-    buf = np.roll(buf, 3, axis=2)
-
-    return buf

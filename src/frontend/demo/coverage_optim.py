@@ -1,9 +1,12 @@
+import numpy as np
 import pandas as pd
 import gurobipy as gp
 from utils import parse, typeparse
 from gurobipy import GRB
 import matplotlib.pyplot as plt
 import networkx as nx
+from scipy.spatial import Voronoi, voronoi_plot_2d
+import matplotlib.animation as animation
 
 verbose = False
         
@@ -82,8 +85,18 @@ def general_model(data_dict, files, hardcode="None"):
         for key, value in globals()[v].items():
             result += f"{key}: {value.x}\n"
 
-    tree = plot_coverage_tree()
-    return result
+    
+
+    coverage, region, selected, covered = extract_data_for_visualization()
+
+    create_voronoi_diagram(coverage, region, selected, covered)
+    plot_comparative_analysis(coverage, region, selected, covered)
+    frames = plot_growth()
+    # Create the animation
+    fig = plt.figure(figsize=(10, 8))
+    ani = animation.FuncAnimation(fig, update, frames=frames, blit=False, repeat=False)
+    plt.show()
+
 
 def plot_coverage_tree():
     """
@@ -169,6 +182,167 @@ def plot_coverage_tree():
     nx.draw_networkx_edges(G, pos, edge_color=list(edges_color.values()), width=list(edges_weight.values()))  # Draw the edges with weights
     plt.show()
 
+def plot_growth():
+    """
+    Generate frames for the animated growth visualization.
+    """
+    # Find coverage, regions, selected towers, and covered regions
+    for var in globals():
+        if isinstance(globals()[var], dict) and len(globals()[var]) > 0 and isinstance(list(globals()[var].values())[0], set):
+            coverage = globals()[var]
+            break
+
+    max_len = 0
+    for var in globals():
+        if isinstance(globals()[var], list) and len(globals()[var]) > max_len:
+            region = globals()[var]
+            max_len = len(globals()[var])
+
+    for var in globals():
+        if isinstance(globals()[var], gp.tupledict) and len(globals()[var]) > 0 and set(globals()[var].keys()) == set(coverage.keys()):
+            selected = globals()[var]
+            break
+
+    for var in globals():
+        if isinstance(globals()[var], gp.tupledict) and len(globals()[var]) > 0 and set(globals()[var].keys()) == set(region):
+            covered = globals()[var]
+            break
+
+    # Generate frames for animation
+    frames = []
+    for t in coverage:
+        G = nx.DiGraph()
+
+        # Add the nodes
+        for r in region:
+            if covered[r].x == 1:
+                G.add_node(f"Region_{r}", pos=(0, list(region).index(r)), color='lightblue')
+            else:
+                G.add_node(f"Region_{r}", pos=(0, list(region).index(r)), color='red')
+
+        for t_idx in selected:  # Iterate over selected tower indices
+            if t_idx <= t and selected[t_idx].x == 1:  # Add tower only if it is selected
+                G.add_node(f"Tower_{t_idx}", pos=(1, list(coverage.keys()).index(t_idx)), color='blue')
+            else:
+                G.add_node(f"Tower_{t_idx}", pos=(1, list(coverage.keys()).index(t_idx)), color='grey')
+
+        # Add the edges
+        for t_idx in selected:  # Iterate over selected tower indices
+            if t_idx <= t:
+                for r in coverage[t_idx]:
+                    if selected[t_idx].x == 1:
+                        G.add_edge(f"Tower_{t_idx}", f"Region_{r}", color='blue', weight=2)
+                    else:
+                        G.add_edge(f"Tower_{t_idx}", f"Region_{r}", color='grey', weight=0.1)
+
+        frames.append(G)
+
+    return frames
+
+def update(frame):
+    """
+    Update function for the animation.
+    """
+    plt.clf()
+    pos = nx.get_node_attributes(frame, 'pos')
+    nodes_color = [frame.nodes[n].get('color', 'grey') for n in frame.nodes()]
+    edges_color = nx.get_edge_attributes(frame, 'color')
+    edges_weight = nx.get_edge_attributes(frame, 'weight')
+    max_length = max([len(n) for n in frame.nodes()])
+    nx.draw(frame, pos, with_labels=True, node_color=nodes_color, edge_color=list(edges_color.values()),
+            edgecolors='grey', node_size=max_length*100, font_size=8, font_color='black', font_weight='bold')
+    nx.draw_networkx_edges(frame, pos, edge_color=list(edges_color.values()), width=list(edges_weight.values()))
+
+def extract_data_for_visualization():
+    """
+    Extract data for comparative analysis visualization.
+    """
+    coverage = None
+    region = None
+    selected = None
+    covered = None
+
+    # Extract coverage data
+    for var in globals():
+        if isinstance(globals()[var], dict) and len(globals()[var]) > 0 and isinstance(list(globals()[var].values())[0], set):
+            coverage = globals()[var]
+            break
+
+    # Extract regions data
+    max_len = 0
+    for var in globals():
+        if isinstance(globals()[var], list) and len(globals()[var]) > max_len:
+            region = globals()[var]
+            max_len = len(globals()[var])
+
+    # Extract selected towers data
+    for var in globals():
+        if isinstance(globals()[var], gp.tupledict) and len(globals()[var]) > 0 and set(globals()[var].keys()) == set(coverage.keys()):
+            selected = globals()[var]
+            break
+
+    # Extract covered regions data
+    for var in globals():
+        if isinstance(globals()[var], gp.tupledict) and len(globals()[var]) > 0 and set(globals()[var].keys()) == set(region):
+            covered = globals()[var]
+            break
+
+    return coverage, region, selected, covered
+
+def plot_comparative_analysis(coverage, region, selected, covered):
+    """
+    Plot a comparative analysis based on extracted data.
+    """
+    # Your visualization code here
+    # For example:
+    # Plotting the number of covered regions vs. selected towers
+    num_covered_regions = len(covered)
+    num_selected_towers = len(selected)
+    labels = ['Covered Regions', 'Selected Towers']
+    values = [num_covered_regions, num_selected_towers]
+
+    plt.bar(labels, values)
+    plt.xlabel('Categories')
+    plt.ylabel('Counts')
+    plt.title('Comparative Analysis')
+    plt.show()
+
+
+def create_voronoi_diagram(coverage, region, selected, covered):
+    """
+    Create a Voronoi diagram visualization based on tower coverage data.
+    """
+    # Generate random tower coordinates for demonstration
+    np.random.seed(0)  # for reproducibility
+    num_towers = 10
+    tower_coords = np.random.randint(0, 100, size=(num_towers, 2))
+
+    # Generate Voronoi diagram
+    vor = Voronoi(tower_coords)
+
+    # Plot Voronoi diagram
+    fig, ax = plt.subplots(figsize=(8, 6))
+    voronoi_plot_2d(vor, ax=ax, show_vertices=False)
+
+    # Highlight selected towers
+    for tower_index in selected.keys():
+        tower = tower_coords[tower_index]
+        ax.plot(tower[0], tower[1], 'ro', markersize=8)
+
+    # Highlight covered regions
+    for region_index, gurobi_var in covered.items():
+        if gurobi_var.x == 1:  # Check if the region is covered
+            if region_index in coverage:
+                region_vertices = np.array([tower_coords[idx] for idx in coverage[region_index]])
+                ax.fill(region_vertices[:, 0], region_vertices[:, 1], color='lightblue', alpha=0.5)
+
+    # Set plot attributes
+    ax.set_title('Voronoi Diagram of Towers and Coverage Regions')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.grid(True)
+
+    plt.show()
 
 def main():
     files = ["coverage.csv", "population.csv"]

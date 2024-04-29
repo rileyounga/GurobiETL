@@ -8,6 +8,7 @@ import networkx as nx
 import gurobipy as gp
 
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from scipy.spatial import Voronoi, voronoi_plot_2d
 
 FIG_SIZE = (10, 8)
 
@@ -57,23 +58,25 @@ def plot_efficient_frontier(m, x, delta, std, stocks):
     ax.set_ylabel('Expected Return')
     ax.legend()
     ax.set_title('Efficient Frontier')
-    
+
     return fig
 
-def plot_portfolio_bubble(std, delta, stocks, x):
+
+def plot_portfolio_bubble(std, delta, stocks, variable):
     """
-    Plot Portfolio Bubble Chart
+    Plot Portfolio Bubble Chart.
+    
     :param std: numpy array of standard deviations (volatility)
     :param delta: numpy array of expected returns
     :param stocks: list of stock symbols
-    :param sizes: numpy array of bubble sizes
-    :return: None
+    :param variable: Gurobi variable
+    :return: matplotlib figure
     """
     fig, ax = plt.subplots(figsize=FIG_SIZE)
 
     # Plot bubbles
-    sizes=x.X
-    sizes*=9000
+    sizes = variable.X
+    sizes *= 9000
     ax.scatter(x=std, y=delta, s=sizes, alpha=0.6)
 
     # Annotate bubbles with stock symbols
@@ -87,11 +90,13 @@ def plot_portfolio_bubble(std, delta, stocks, x):
 
     return fig
 
+
 def plot_portfolio_forecast(data):
     """
-    Plot portfolio forecast based on historical data
+    Plot portfolio forecast based on historical data.
+    
     :param data: DataFrame containing historical stock data with Date as index and Close prices
-    :return: None
+    :return: matplotlib figure
     """
     # Compute portfolio value as the sum of close prices of all stocks
     portfolio_value = data['Close'].sum(axis=1)
@@ -117,10 +122,11 @@ def plot_portfolio_forecast(data):
 
 def plot_portfolio_pie(stocks, sizes):
     """
-    Plot Portfolio Pie Chart
+    Plot Portfolio Pie Chart.
+    
     :param stocks: list of stock symbols
     :param sizes: numpy array of sizes
-    :return: None
+    :return: matplotlib figure
     """
     # The portfolio composition is already covered in the text output,
     # how about we base it off of portfolio sector type composition?
@@ -146,56 +152,54 @@ def plot_portfolio_pie(stocks, sizes):
 
     return fig
 
-def plot_power_plant_supply(H, P, Z):
-    """
-    Plot power plant supply
-    :param H: list of hours
-    :param P: list of plants
-    :param Z: gurobi variable
-    :return: None
-    """
 
-    solution = pd.DataFrame() 
-    solution = pd.DataFrame(columns=['Hour', 'Power (MWh)', 'Plant']) 
-    plant_hour_pairs = [(h,i) for i in P for h in H if Z[i,h].X > 0] 
-                
+def plot_power_plant_supply(hours, plants, variable):
+    """
+    Plot power plant supply.
+    
+    :param hours: list of hours
+    :param plants: list of plants
+    :param variable: Gurobi variable
+    :return: matplotlib figure
+    """
+    solution = pd.DataFrame(columns=['Hour', 'Power (MWh)', 'Plant'])
+    plant_hour_pairs = [(h, i) for i in plants for h in hours if variable[i, h].X > 0]
+
     solution['Hour'] = [pair[0] for pair in plant_hour_pairs]
     solution['Plant'] = [pair[1] for pair in plant_hour_pairs]
-    solution['Power generated (MWh)'] = [Z[pair[1],pair[0]].X for pair in plant_hour_pairs]
-                
+    solution['Power generated (MWh)'] = [variable[pair[1], pair[0]].X for pair in plant_hour_pairs]
+
     print("Power supply:")
-    fig, ax = plt.subplots(figsize=(15,6))
-    sns.pointplot(data=solution,x='Hour', y='Power generated (MWh)', hue='Plant')
+    fig, ax = plt.subplots(figsize=(15, 6))
+    sns.pointplot(data=solution, x='Hour', y='Power generated (MWh)', hue='Plant')
     sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
-    
+
     return fig
 
-def plot_power_demand(H, D):
-    """
-    Plot power demand
-    :param H: list of hours
-    :param D: dictionary of demand
-    :return: None
-    """
 
+def plot_power_demand(hours, demand):
+    """
+    Plot power demand.
+    
+    :param hours: list of hours
+    :param demand: dictionary of demand
+    :return: matplotlib figure
+    """
     print("Power demand:")
-    fig, ax = plt.subplots(figsize=(15,6))
-    demand = pd.DataFrame(columns=['Hour', 'Demand (MWh)']) 
-    demand['Hour'] = list(H)
-    demand['Demand (MWh)'] = [D[h] for h in H]
-    sns.pointplot(data=demand,x='Hour', y='Demand (MWh)')
-    
+    fig, ax = plt.subplots(figsize=(15, 6))
+    demand_data = pd.DataFrame(columns=['Hour', 'Demand (MWh)'])
+    demand_data['Hour'] = hours
+    demand_data['Demand (MWh)'] = [demand[h] for h in hours]
+    sns.pointplot(data=demand_data, x='Hour', y='Demand (MWh)')
+
     return fig
+
 
 def plot_coverage_tree(coverage, region, selected, covered):
     """
     Create a tree matching selected Towers to their Coverage Regions.
     Highlight the selected Towers, but display all Towers and Regions.
     """
-
-    # now coverage is a dictionary mapping ints to sets
-    # region is a list of ints
-    # selected is a gurobi variable mapping ints to gb.Var (binary)
 
     G = nx.DiGraph()
 
@@ -230,12 +234,50 @@ def plot_coverage_tree(coverage, region, selected, covered):
     pos = nx.get_node_attributes(G, 'pos')
     nodes_color = [G.nodes[n].get('color', 'grey') for n in G.nodes()]  # Use a default color if no color attribute is found
     edges_color = nx.get_edge_attributes(G, 'color')
-    edges_weight = nx.get_edge_attributes(G, 'weight')  # Get the edge weights
+    edges_weight = nx.get_edge_attributes(G, 'weight')
     # find the max length of a node name to set the node size
     max_length = max([len(n) for n in G.nodes()])
     fig, ax = plt.subplots(figsize=FIG_SIZE)
-    nx.draw(G, pos, with_labels=True, node_color=nodes_color, edge_color=list(edges_color.values()), 
-            edgecolors='grey', node_size=max_length*120, font_size=8, font_color='black', font_weight='bold', ax=ax)
-    nx.draw_networkx_edges(G, pos, edge_color=list(edges_color.values()), width=list(edges_weight.values()), ax=ax)  # Draw the edges with weights
-    
+    nx.draw(G, pos, with_labels=True, node_color=nodes_color, edge_color=list(edges_color.values()),
+            edgecolors='grey', node_size=max_length * 200, font_size=9, font_color='black', font_weight='bold', ax=ax)
+    nx.draw_networkx_edges(G, pos, edge_color=list(edges_color.values()), width=list(edges_weight.values()), ax=ax)
+    ax.set_title('Coverage Regions and Towers')
+    ax.set_facecolor('lightgrey')
+    return fig
+
+
+def create_voronoi_diagram(coverage, region, selected, covered):
+    """
+    Create a Voronoi diagram visualization based on tower coverage data.
+    """
+    # Generate random tower coordinates for demonstration
+    np.random.seed(0)  # for reproducibility
+    num_towers = 10
+    tower_coords = np.random.randint(0, 100, size=(num_towers, 2))
+
+    # Generate Voronoi diagram
+    vor = Voronoi(tower_coords)
+
+    # Plot Voronoi diagram
+    fig, ax = plt.subplots(figsize=(8, 6))
+    voronoi_plot_2d(vor, ax=ax, show_vertices=False)
+
+    # Highlight selected towers
+    for tower_index in selected.keys():
+        tower = tower_coords[tower_index]
+        ax.plot(tower[0], tower[1], 'ro', markersize=8)
+
+    # Highlight covered regions
+    for region_index, gurobi_var in covered.items():
+        if gurobi_var.x == 1:  # Check if the region is covered
+            if region_index in coverage:
+                region_vertices = np.array([tower_coords[idx] for idx in coverage[region_index]])
+                ax.fill(region_vertices[:, 0], region_vertices[:, 1], color='lightblue', alpha=0.5)
+
+    # Set plot attributes
+    ax.set_title('Voronoi Diagram of Towers and Coverage Regions')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.grid(True)
+
     return fig

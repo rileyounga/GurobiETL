@@ -1,25 +1,17 @@
-import math
 import io
 import json
 import base64
 import yfinance as yf
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import gurobipy as gp
 from gurobipy import GRB
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
-from utils import parse, typeparse, fig2data
+from utils import parse, typeparse
 from visualizations import *
-
-"""
-Context:
-#fetch path: src/app/problem/page.js
-#cur path: src/api/script.py
-"""
 
 app = Flask(__name__)
 CORS(app)
@@ -317,10 +309,12 @@ def general_model(data_dict, files, hardcode="None"):
         if coverage == None or region == None or selected == None or covered == None:
             raise Exception("Error: Please check the data")
         
-        fig = plot_coverage_tree(coverage, region, selected, covered)
-        img = io.BytesIO()
-        FigureCanvas(fig).print_png(img)
-        plots.append(base64.b64encode(img.getvalue()).decode())
+        tree = plot_coverage_tree(coverage, region, selected, covered)
+        voronoi = create_voronoi_diagram(coverage, region, selected, covered)
+        for plot in [tree, voronoi]:
+            img = io.BytesIO()
+            FigureCanvas(plot).print_png(img)
+            plots.append(base64.b64encode(img.getvalue()).decode())
 
     return result, plots
 
