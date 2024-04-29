@@ -1,5 +1,6 @@
 "use client";
 import styles from "./page.module.css";
+import Image from "next/image";
 
 export default function Content() {
   let solution = JSON.parse(localStorage.getItem("solution"));
@@ -28,7 +29,17 @@ export default function Content() {
             { solution["fig"] &&
             <div className={styles.chart}>
               <h2>Visualization:</h2>
-                <img id="figure" src={"data:image/png;base64," + solution.fig} />
+                <Image
+                  id="figure"
+                  src={"data:image/png;base64," + solution.fig}
+                  sizes="100vw"
+                  style={{
+                          width: '100%',
+                          height: 'auto'
+                        }}
+                  width={2000}
+                  height={1600}
+                />
             </div>
             }
 
