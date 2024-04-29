@@ -79,7 +79,7 @@ def home():
         if verbose:
             print(result)
         try:
-            response["fig"] = base64.b64encode(fig).decode()
+            response["fig"] = fig
         except:
             response["fig"] = None
     return jsonify(response)
