@@ -1,5 +1,6 @@
 "use client";
 import styles from "./page.module.css";
+import Image from "next/image";
 
 export default function Content() {
   let solution = JSON.parse(localStorage.getItem("solution"));
@@ -12,25 +13,46 @@ export default function Content() {
     );
   }
   else {
-    let result = solution.result.split('\n');
     return (
       <main className={styles.main}>
           <div className={styles.grid}>
-            { result &&
+            { solution["result"] &&
             <div className={styles.chart}>
-              <h2>{result[1]}</h2>
-              {result.slice(2).map((line) => (
-                <p>{line}</p>
-              ))}
+              <h2>Result:</h2>
+              <table>
+                <tr>
+                  {Object.keys(solution["result"][0]).map((col) => (
+                    <td>{col}</td>
+                  ))}
+                </tr>
+                {solution["result"].map((line) => (
+                  <tr>
+                    {Object.values(line).map((val) => (
+                      <td>{val}</td>
+                    ))}
+                  </tr>
+                ))}
+              </table>
             </div>
             }
             
             { solution["fig"] &&
-            <div className={styles.chart}>
-              <h2>Visualization:</h2>
-                <img id="figure" src={"data:image/png;base64," + solution.fig} />
-            </div>
-            }
+            solution["fig"].map((image, index) => (
+              <div className={styles.chart}>
+                <h2>Visualization {index+1}:</h2>
+                <Image
+                  id="figure"
+                  src={"data:image/png;base64," + image}
+                  sizes="100vw"
+                  style={{
+                    width: '75%',
+                    height: 'auto'
+                  }}
+                  width={2000}
+                  height={1600}
+                />
+              </div>
+            ))}
 
           </div>
       </main>
