@@ -56,28 +56,22 @@ def home():
     if problemType == "mathematical_optimization":
         result, fig = general_model(data_dict, files, hardcode="PowerPlant")
         response["result"] = result
-        if verbose:
-            print(result)
         try:
-            response["fig"] = base64.b64encode(fig).decode()
+            response["fig"] = fig
         except:
             response["fig"] = None
 
     elif problemType == "location_analysis":
         result, fig = general_model(data_dict, files, hardcode="Coverage")
         response["result"] = result
-        if verbose:
-            print(result)
         try:
-            response["fig"] = base64.b64encode(fig).decode()
+            response["fig"] = fig
         except:
             response["fig"] = None
 
     elif problemType == "portfolio_optimization":
         result, fig = portfolio_model(files)
         response["result"] = result
-        if verbose:
-            print(result)
         try:
             response["fig"] = fig
         except:
@@ -122,81 +116,24 @@ def portfolio_model(files):
 
     m.optimize()
 
-    # Prepare the data for the table
-    table_data = []
+    # Print the decision variables
+    result = "\nOptimal Portfolio:\n"
     for i in range(len(stocks)):
         if x.X[i] > 0.01:
-            stock_allocation = f"{x.X[i]*100:.2f}%"
-            table_data.append({"Stock": stocks[i], "Allocation": stock_allocation})
-
-    """ copilot recommendation 
-    let result = solution.result.split('\n');
-    return (
-        <main className={styles.main}>
-            <div className={styles.grid}>
-            <div className={styles.card}>
-                <h2>{result[1]}</h2>
-                {result.slice(2).map((line) => (
-                <p>{line}</p>
-                ))}
-            </div>
-
-            <div className={styles.chart}>
-                <h2>Visualization:</h2>
-                <img id="figure" src={"data:image/png;base64," + solution.fig} />
-            </div>
-
-            <div className={styles.table}>
-                <h2>Optimal Portfolio:</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Stock</th>
-                            <th>Allocation</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {tableData.map((row, index) => (
-                            <tr key={index}>
-                                <td>{row.Stock}</td>
-                                <td>{row.Allocation}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-    """
+            result += f"{stocks[i]}: {x.X[i]*100:.2f}%\n"
 
     bubble = plot_portfolio_bubble(std, delta, stocks, x)
     pie = plot_portfolio_pie(stocks, x)
     frontier = plot_efficient_frontier(m, x, delta, std, stocks)
     forecast = plot_portfolio_forecast(data)
 
-    """
-    again reference the current handling
-        let result = solution.result.split('\n');
-    return (
-      <main className={styles.main}>
-          <div className={styles.grid}>
-            <div className={styles.card}>
-              <h2>{result[1]}</h2>
-              {result.slice(2).map((line) => (
-                <p>{line}</p>
-              ))}
-            </div>
-
-            <div className={styles.chart}>
-              <h2>Visualization:</h2>
-                <img id="figure" src={"data:image/png;base64," + solution.fig} />
-            </div>
-    """
     plots = []
-    for plot in [bubble, pie, frontier, forecast]:
+    for plot in [bubble, frontier, pie, forecast]:
         img = io.BytesIO()
         FigureCanvas(plot).print_png(img)
         plots.append(base64.b64encode(img.getvalue()).decode())
 
-    return table_data, plots
+    return result, plots
 
 
 def general_model(data_dict, files, hardcode="None"):
@@ -343,28 +280,14 @@ def general_model(data_dict, files, hardcode="None"):
         for key, value in globals()[v].items():
             result += f"{key}: {value.x}\n"
 
-    if hardcode == "PowerPlant" and verbose:
-        supply = plot_power_plant_supply(globals()["H"], globals()["P"], globals()["Z"])
+    plots = []
+    if hardcode == "PowerPlant":
+        supply = plot_power_plant_supply(globals()["H"], globals()["P"], globals()["z"])
         demand = plot_power_demand(globals()["H"], globals()["d"])
-        supply = fig2data(supply)
-        demand = fig2data(demand)
-
-        #TODO: Here I am merging the plots into a 20, 8 single image
-        fig, ax = plt.subplots(1, 2, figsize=(20, 8))
-        ax[0].imshow(supply)
-        ax[0].axis('off')
-        ax[0].set_title('Power Plant Supply')
-        ax[1].imshow(demand)
-        ax[1].axis('off')
-        ax[1].set_title('Power Demand')
-        
-        fig.tight_layout()
-        fig.show()
-
-        # save the image to a byte stream
-        img = io.BytesIO()
-        FigureCanvas(fig).print_png(img)
-        fig = img.getvalue()
+        for plot in [supply, demand]:
+            img = io.BytesIO()
+            FigureCanvas(plot).print_png(img)
+            plots.append(base64.b64encode(img.getvalue()).decode())        
 
     elif hardcode == "Coverage":
         # Find the coverage by extracting the first global variable mapping indexes to sets
@@ -395,12 +318,11 @@ def general_model(data_dict, files, hardcode="None"):
             raise Exception("Error: Please check the data")
         
         fig = plot_coverage_tree(coverage, region, selected, covered)
-        
         img = io.BytesIO()
         FigureCanvas(fig).print_png(img)
-        fig = img.getvalue()
-        
-    return result, fig
+        plots.append(base64.b64encode(img.getvalue()).decode())
+
+    return result, plots
 
 if __name__ == '__main__':
     app.run(debug=True, port=8080)

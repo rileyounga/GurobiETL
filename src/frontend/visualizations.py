@@ -9,6 +9,8 @@ import gurobipy as gp
 
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
+FIG_SIZE = (10, 8)
+
 
 def plot_efficient_frontier(m, x, delta, std, stocks):
     """
@@ -34,7 +36,7 @@ def plot_efficient_frontier(m, x, delta, std, stocks):
         m.optimize()
         frontier = np.append(frontier, [[math.sqrt(m.ObjVal)],[r]], axis=1)
 
-    fig, ax = plt.subplots(figsize=(10,8))
+    fig, ax = plt.subplots(figsize=FIG_SIZE)
 
     # Plot volatility versus expected return for individual stocks
     ax.scatter(x=std, y=delta,
@@ -67,7 +69,7 @@ def plot_portfolio_bubble(std, delta, stocks, x):
     :param sizes: numpy array of bubble sizes
     :return: None
     """
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=FIG_SIZE)
 
     # Plot bubbles
     sizes=x.X
@@ -102,7 +104,7 @@ def plot_portfolio_forecast(data):
     model = ExponentialSmoothing(portfolio_data, trend='add', seasonal='add', seasonal_periods=12).fit()
     forecast = model.forecast(steps=12)  # Forecast for 12 months ahead
 
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=FIG_SIZE)
     ax.plot(portfolio_data, label='Historical Data')
     ax.plot(forecast, label='Forecast', linestyle='dashed')
     ax.set_xlabel('Date')
@@ -134,7 +136,7 @@ def plot_portfolio_pie(stocks, sizes):
         else:
             sectors[sector] = allocation
 
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=FIG_SIZE)
 
     # Plot pie chart
     ax.pie(sectors.values(), labels=sectors.keys(), autopct='%1.1f%%', startangle=140)
@@ -162,10 +164,11 @@ def plot_power_plant_supply(H, P, Z):
     solution['Power generated (MWh)'] = [Z[pair[1],pair[0]].X for pair in plant_hour_pairs]
                 
     print("Power supply:")
-    fig, ax = plt.subplots(figsize=(15,6)) 
+    fig, ax = plt.subplots(figsize=(15,6))
     sns.pointplot(data=solution,x='Hour', y='Power generated (MWh)', hue='Plant')
     sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
-    plt.show()
+    
+    return fig
 
 def plot_power_demand(H, D):
     """
@@ -176,7 +179,7 @@ def plot_power_demand(H, D):
     """
 
     print("Power demand:")
-    fig, ax = plt.subplots(figsize=(15,6)) 
+    fig, ax = plt.subplots(figsize=(15,6))
     demand = pd.DataFrame(columns=['Hour', 'Demand (MWh)']) 
     demand['Hour'] = list(H)
     demand['Demand (MWh)'] = [D[h] for h in H]
@@ -230,7 +233,7 @@ def plot_coverage_tree(coverage, region, selected, covered):
     edges_weight = nx.get_edge_attributes(G, 'weight')  # Get the edge weights
     # find the max length of a node name to set the node size
     max_length = max([len(n) for n in G.nodes()])
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=FIG_SIZE)
     nx.draw(G, pos, with_labels=True, node_color=nodes_color, edge_color=list(edges_color.values()), 
             edgecolors='grey', node_size=max_length*120, font_size=8, font_color='black', font_weight='bold', ax=ax)
     nx.draw_networkx_edges(G, pos, edge_color=list(edges_color.values()), width=list(edges_weight.values()), ax=ax)  # Draw the edges with weights

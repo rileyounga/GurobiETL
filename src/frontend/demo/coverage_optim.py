@@ -2,7 +2,6 @@ import pandas as pd
 import gurobipy as gp
 from utils import parse, typeparse
 from gurobipy import GRB
-import ast
 import matplotlib.pyplot as plt
 import networkx as nx
 
@@ -21,7 +20,7 @@ def general_model(data_dict, files, hardcode="None"):
     # Load the data
     for f in files:
         file = pd.read_csv(f)
-        if hardcode == "Powerplant":
+        if hardcode == "PowerPlant":
             globals()[f.split(".")[0]] = pd.read_csv(f)
         # Parameteric the files
         i = 0
@@ -107,7 +106,6 @@ def plot_coverage_tree():
         if isinstance(globals()[var], list) and len(globals()[var]) > max_len:
             region = globals()[var]
             max_len = len(globals()[var])
-
 
     # Find the selected Towers by extracting the global variable with the same indexes as the coverage that is also a gurobi variable
     for var in globals():
