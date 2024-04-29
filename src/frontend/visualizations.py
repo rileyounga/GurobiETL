@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import yfinance as yf
+import networkx as nx
+import gurobipy as gp
 
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
@@ -179,5 +181,58 @@ def plot_power_demand(H, D):
     demand['Hour'] = list(H)
     demand['Demand (MWh)'] = [D[h] for h in H]
     sns.pointplot(data=demand,x='Hour', y='Demand (MWh)')
+    
+    return fig
+
+def plot_coverage_tree(coverage, region, selected, covered):
+    """
+    Create a tree matching selected Towers to their Coverage Regions.
+    Highlight the selected Towers, but display all Towers and Regions.
+    """
+
+    # now coverage is a dictionary mapping ints to sets
+    # region is a list of ints
+    # selected is a gurobi variable mapping ints to gb.Var (binary)
+
+    G = nx.DiGraph()
+
+    # Add the nodes
+    for r in region:
+        # if the region is covered, color it lightblue
+        if covered[r].x == 1:
+            G.add_node(f"Region_{r}", pos=(0, list(region).index(r)), color='lightblue')
+        else:
+            # if the region is not covered, color it red
+            G.add_node(f"Region_{r}", pos=(0, list(region).index(r)), color='red')
+
+    for t in coverage:
+        # If the tower is selected, color it blue
+        if selected[t].x == 1:
+            G.add_node(f"Tower_{t}", pos=(1, list(coverage.keys()).index(t)), color='blue')
+        else:
+            # If the tower is not selected, color it grey
+            G.add_node(f"Tower_{t}", pos=(1, list(coverage.keys()).index(t)), color='grey')
+
+    # Add the edges
+    for t in selected:
+        for r in coverage[t]:
+            # If the tower is selected, color the edge blue
+            if selected[t].x == 1:
+                G.add_edge(f"Tower_{t}", f"Region_{r}", color='blue', weight=2)
+            else:
+                # If the tower is not selected, color the edge grey
+                G.add_edge(f"Tower_{t}", f"Region_{r}", color='grey', weight=0.1)
+
+    # Draw the graph
+    pos = nx.get_node_attributes(G, 'pos')
+    nodes_color = [G.nodes[n].get('color', 'grey') for n in G.nodes()]  # Use a default color if no color attribute is found
+    edges_color = nx.get_edge_attributes(G, 'color')
+    edges_weight = nx.get_edge_attributes(G, 'weight')  # Get the edge weights
+    # find the max length of a node name to set the node size
+    max_length = max([len(n) for n in G.nodes()])
+    fig, ax = plt.subplots(figsize=(10, 8))
+    nx.draw(G, pos, with_labels=True, node_color=nodes_color, edge_color=list(edges_color.values()), 
+            edgecolors='grey', node_size=max_length*120, font_size=8, font_color='black', font_weight='bold', ax=ax)
+    nx.draw_networkx_edges(G, pos, edge_color=list(edges_color.values()), width=list(edges_weight.values()), ax=ax)  # Draw the edges with weights
     
     return fig

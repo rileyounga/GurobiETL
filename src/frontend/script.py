@@ -64,7 +64,7 @@ def home():
             response["fig"] = None
 
     elif problemType == "location_analysis":
-        result, fig = general_model(data_dict, files)
+        result, fig = general_model(data_dict, files, hardcode="Coverage")
         response["result"] = result
         if verbose:
             print(result)
@@ -95,12 +95,12 @@ def portfolio_model(files):
     try:
         stocks = pd.read_csv(files[0])
     except:
-        return "Error: Please upload a csv file with a list of stocks"
+        raise Exception("Error: Please upload a csv file")
     stocks = stocks.iloc[1:, 0].str.upper().str.strip().tolist()
     try:
         data = yf.download(stocks, period="2y")
     except:
-        return "Error: Please check the stock symbols and try again"
+        raise Exception("Error: Please check the stock symbols")
     
     # Compute statistics
     closes = np.transpose(data['Close'].to_numpy())
@@ -122,49 +122,81 @@ def portfolio_model(files):
 
     m.optimize()
 
-    # Print the optimal portfolio
-    result = "\nOptimal Portfolio:\n"
+    # Prepare the data for the table
+    table_data = []
     for i in range(len(stocks)):
-        # if stock allocation is less than 0.01, then it is considered negligible
         if x.X[i] > 0.01:
-            # print the stock and its allocation as a percentage
-            result += f"{stocks[i]}: {x.X[i]*100:.2f}%\n"
+            stock_allocation = f"{x.X[i]*100:.2f}%"
+            table_data.append({"Stock": stocks[i], "Allocation": stock_allocation})
+
+    """ copilot recommendation 
+    let result = solution.result.split('\n');
+    return (
+        <main className={styles.main}>
+            <div className={styles.grid}>
+            <div className={styles.card}>
+                <h2>{result[1]}</h2>
+                {result.slice(2).map((line) => (
+                <p>{line}</p>
+                ))}
+            </div>
+
+            <div className={styles.chart}>
+                <h2>Visualization:</h2>
+                <img id="figure" src={"data:image/png;base64," + solution.fig} />
+            </div>
+
+            <div className={styles.table}>
+                <h2>Optimal Portfolio:</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Stock</th>
+                            <th>Allocation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {tableData.map((row, index) => (
+                            <tr key={index}>
+                                <td>{row.Stock}</td>
+                                <td>{row.Allocation}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+    """
 
     bubble = plot_portfolio_bubble(std, delta, stocks, x)
     pie = plot_portfolio_pie(stocks, x)
     frontier = plot_efficient_frontier(m, x, delta, std, stocks)
     forecast = plot_portfolio_forecast(data)
 
-    # prepare the plots for display
-    bubble = fig2data(bubble)
-    pie = fig2data(pie)
-    frontier = fig2data(frontier)
-    forecast = fig2data(forecast)
+    """
+    again reference the current handling
+        let result = solution.result.split('\n');
+    return (
+      <main className={styles.main}>
+          <div className={styles.grid}>
+            <div className={styles.card}>
+              <h2>{result[1]}</h2>
+              {result.slice(2).map((line) => (
+                <p>{line}</p>
+              ))}
+            </div>
 
-    #TODO: Here I am merging the plots into a 20, 16 single image
-    fig, ax = plt.subplots(2, 2, figsize=(20, 16))
-    ax[0, 0].imshow(bubble)
-    ax[0, 0].axis('off')
-    ax[0, 0].set_title('Portfolio Bubble Chart')
-    ax[0, 1].imshow(pie)
-    ax[0, 1].axis('off')
-    ax[0, 1].set_title('Portfolio Pie Chart')
-    ax[1, 0].imshow(frontier)
-    ax[1, 0].axis('off')
-    ax[1, 0].set_title('Efficient Frontier')
-    ax[1, 1].imshow(forecast)
-    ax[1, 1].axis('off')
-    ax[1, 1].set_title('Portfolio Forecast')
+            <div className={styles.chart}>
+              <h2>Visualization:</h2>
+                <img id="figure" src={"data:image/png;base64," + solution.fig} />
+            </div>
+    """
+    plots = []
+    for plot in [bubble, pie, frontier, forecast]:
+        img = io.BytesIO()
+        FigureCanvas(plot).print_png(img)
+        plots.append(base64.b64encode(img.getvalue()).decode())
 
-    fig.tight_layout()
-    fig.show()
-
-    # save the image to a byte stream
-    img = io.BytesIO()
-    FigureCanvas(fig).print_png(img)
-    output = img.getvalue()
-
-    return result, output
+    return table_data, plots
 
 
 def general_model(data_dict, files, hardcode="None"):
@@ -186,7 +218,7 @@ def general_model(data_dict, files, hardcode="None"):
             if hardcode == "PowerPlant":
                 globals()[name.strip()] = file
         except:
-            return "Error: Please upload a csv file"
+            raise Exception("Error: Please upload a csv file")
         # Parameterize the files
         i = 0
         for key, value in file.items():
@@ -197,7 +229,7 @@ def general_model(data_dict, files, hardcode="None"):
                 try:
                     globals()[key] = value.to_list()
                 except:
-                    return "Error: First column must be index"
+                    raise Exception("Error: Please check the data")
                 index = value.to_list()
             else:
                 # parse the data type of the value
@@ -234,7 +266,7 @@ def general_model(data_dict, files, hardcode="None"):
     try:
         var_test = data_dict["variables"]
     except:
-        return "Error: Please add variables to the data"
+        raise Exception("Error: Please add variables to the data")
     for v in data_dict["variables"]:
         var, Index = v.split("^")
         h1, h2 = Index.replace("{", "").replace("}", "").split(",") if "," in Index else (Index.replace("{", "").replace("}", ""), None)
@@ -243,7 +275,7 @@ def general_model(data_dict, files, hardcode="None"):
             try:
                 globals()[var] = m.addVars(globals()[h1], vtype=GRB.BINARY)
             except:
-                return "Error: Please check the variable names"
+                raise Exception("Error: Please check the variable names")
         else:
             if hardcode == "PowerPlant":
                 # This could be fixed if there was more time, an oversight on my part, I thought I could intuit the vtype
@@ -258,14 +290,14 @@ def general_model(data_dict, files, hardcode="None"):
             try:
                 globals()[var] = m.addVars(globals()[h1], globals()[h2], vtype=GRB.BINARY)
             except:
-                return "Error: Please check the variable names"
+                raise Exception("Error: Please check the variable names")
         variables.append(var)
 
     # Add the constraints and objective
     try:
         cons_test = data_dict["constraints"]
     except:
-        return "Error: Please add constraints to the data"
+        raise Exception("Error: Please add constraints to the data")
     for c in data_dict["constraints"]:
         cons = parse(c)
         # count the number of 'for's in the constraint
@@ -276,18 +308,18 @@ def general_model(data_dict, files, hardcode="None"):
             try:
                 exec("m.addConstr(" + cons + ")")
             except:
-                return "Error: Please check the constraint"
+                raise Exception("Error: Please check the constraint")
         elif iter_count == 2:
             if verbose:
                 print("m.addConstrs(" + cons + ")")
             try:
                 exec("m.addConstrs(" + cons + ")")
             except:
-                return "Error: Please check the constraint"
+                raise Exception("Error: Please check the constraint")
     try:
         obj_test = data_dict["objective"]
     except:
-        return "Error: Please add an objective to the data"
+        raise Exception("Error: Please add an objective to the data")
     objective = data_dict["objective"]["formula"]
     sense = "GRB.MAXIMIZE" if data_dict["objective"]["sense"].strip().lower() == "maximize" else "GRB.MINIMIZE"
     obj = "m.setObjective(" + parse(objective) + ", sense=" + sense + ")"
@@ -296,12 +328,12 @@ def general_model(data_dict, files, hardcode="None"):
     try:
         exec(obj)
     except:
-        return "Error: Please check the objective"
+        raise Exception("Error: Please check the objective")
 
     m.optimize()
 
     if m.status == GRB.INFEASIBLE:
-        return "Model is infeasible"
+        raise Exception("Model is infeasible")
     
     # Print the decision variables
     result = "\nDecision Variables:\n"
@@ -334,8 +366,39 @@ def general_model(data_dict, files, hardcode="None"):
         FigureCanvas(fig).print_png(img)
         fig = img.getvalue()
 
-    else:
-        fig = None
+    elif hardcode == "Coverage":
+        # Find the coverage by extracting the first global variable mapping indexes to sets
+        for var in globals():
+            if isinstance(globals()[var], dict) and len(globals()[var]) > 0 and isinstance(list(globals()[var].values())[0], set):
+                coverage = globals()[var]
+                break
+
+        # Find the regions by extracting the longest global variable list
+        max_len = 0
+        for var in globals():
+            if isinstance(globals()[var], list) and len(globals()[var]) > max_len:
+                region = globals()[var]
+                max_len = len(globals()[var])
+
+        # Find the selected Towers by extracting the global variable with the same indexes as the coverage that is also a gurobi variable
+        for var in globals():
+            if isinstance(globals()[var], gp.tupledict) and len(globals()[var]) > 0 and set(globals()[var].keys()) == set(coverage.keys()):
+                selected = globals()[var]
+                break
+
+        # Find the covered regions by extracting the global variable with the same indexes as the regions that is also a gurobi variable
+        for var in globals():
+            if isinstance(globals()[var], gp.tupledict) and len(globals()[var]) > 0 and set(globals()[var].keys()) == set(region):
+                covered = globals()[var]
+                break
+        if coverage == None or region == None or selected == None or covered == None:
+            raise Exception("Error: Please check the data")
+        
+        fig = plot_coverage_tree(coverage, region, selected, covered)
+        
+        img = io.BytesIO()
+        FigureCanvas(fig).print_png(img)
+        fig = img.getvalue()
         
     return result, fig
 
